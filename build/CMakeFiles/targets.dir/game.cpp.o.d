@@ -1,10 +1,9 @@
 CMakeFiles/targets.dir/game.cpp.o: \
- /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/game.cpp \
- /usr/include/stdc-predef.h \
- /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/game.h \
- /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/engine.h \
- /usr/include/SDL2/SDL.h /usr/include/SDL2/SDL_main.h \
- /usr/include/SDL2/SDL_stdinc.h /usr/include/SDL2/SDL_config.h \
+ /home/viniciuscgp/Desktop/TargetsGame/game.cpp \
+ /usr/include/stdc-predef.h /home/viniciuscgp/Desktop/TargetsGame/game.h \
+ /home/viniciuscgp/Desktop/TargetsGame/engine.h /usr/include/SDL2/SDL.h \
+ /usr/include/SDL2/SDL_main.h /usr/include/SDL2/SDL_stdinc.h \
+ /usr/include/SDL2/SDL_config.h \
  /usr/include/x86_64-linux-gnu/SDL2/_real_SDL_config.h \
  /usr/include/SDL2/SDL_platform.h /usr/include/SDL2/begin_code.h \
  /usr/include/SDL2/close_code.h /usr/include/x86_64-linux-gnu/sys/types.h \

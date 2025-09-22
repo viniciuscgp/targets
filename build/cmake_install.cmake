@@ -1,4 +1,4 @@
-# Install script for directory: /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets
+# Install script for directory: /home/viniciuscgp/Desktop/TargetsGame
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/viniciuscgp/Desktop/TargetsGame/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

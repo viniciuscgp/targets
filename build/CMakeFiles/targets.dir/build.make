@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets
+CMAKE_SOURCE_DIR = /home/viniciuscgp/Desktop/TargetsGame
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build
+CMAKE_BINARY_DIR = /home/viniciuscgp/Desktop/TargetsGame/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/targets.dir/depend.make
@@ -70,46 +70,46 @@ include CMakeFiles/targets.dir/progress.make
 include CMakeFiles/targets.dir/flags.make
 
 CMakeFiles/targets.dir/targets.cpp.o: CMakeFiles/targets.dir/flags.make
-CMakeFiles/targets.dir/targets.cpp.o: /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/targets.cpp
+CMakeFiles/targets.dir/targets.cpp.o: /home/viniciuscgp/Desktop/TargetsGame/targets.cpp
 CMakeFiles/targets.dir/targets.cpp.o: CMakeFiles/targets.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/targets.dir/targets.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/targets.dir/targets.cpp.o -MF CMakeFiles/targets.dir/targets.cpp.o.d -o CMakeFiles/targets.dir/targets.cpp.o -c /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/targets.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/targets.dir/targets.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/targets.dir/targets.cpp.o -MF CMakeFiles/targets.dir/targets.cpp.o.d -o CMakeFiles/targets.dir/targets.cpp.o -c /home/viniciuscgp/Desktop/TargetsGame/targets.cpp
 
 CMakeFiles/targets.dir/targets.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/targets.dir/targets.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/targets.cpp > CMakeFiles/targets.dir/targets.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/viniciuscgp/Desktop/TargetsGame/targets.cpp > CMakeFiles/targets.dir/targets.cpp.i
 
 CMakeFiles/targets.dir/targets.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/targets.dir/targets.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/targets.cpp -o CMakeFiles/targets.dir/targets.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/viniciuscgp/Desktop/TargetsGame/targets.cpp -o CMakeFiles/targets.dir/targets.cpp.s
 
 CMakeFiles/targets.dir/game.cpp.o: CMakeFiles/targets.dir/flags.make
-CMakeFiles/targets.dir/game.cpp.o: /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/game.cpp
+CMakeFiles/targets.dir/game.cpp.o: /home/viniciuscgp/Desktop/TargetsGame/game.cpp
 CMakeFiles/targets.dir/game.cpp.o: CMakeFiles/targets.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/targets.dir/game.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/targets.dir/game.cpp.o -MF CMakeFiles/targets.dir/game.cpp.o.d -o CMakeFiles/targets.dir/game.cpp.o -c /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/game.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/targets.dir/game.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/targets.dir/game.cpp.o -MF CMakeFiles/targets.dir/game.cpp.o.d -o CMakeFiles/targets.dir/game.cpp.o -c /home/viniciuscgp/Desktop/TargetsGame/game.cpp
 
 CMakeFiles/targets.dir/game.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/targets.dir/game.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/game.cpp > CMakeFiles/targets.dir/game.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/viniciuscgp/Desktop/TargetsGame/game.cpp > CMakeFiles/targets.dir/game.cpp.i
 
 CMakeFiles/targets.dir/game.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/targets.dir/game.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/game.cpp -o CMakeFiles/targets.dir/game.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/viniciuscgp/Desktop/TargetsGame/game.cpp -o CMakeFiles/targets.dir/game.cpp.s
 
 CMakeFiles/targets.dir/engine.cpp.o: CMakeFiles/targets.dir/flags.make
-CMakeFiles/targets.dir/engine.cpp.o: /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/engine.cpp
+CMakeFiles/targets.dir/engine.cpp.o: /home/viniciuscgp/Desktop/TargetsGame/engine.cpp
 CMakeFiles/targets.dir/engine.cpp.o: CMakeFiles/targets.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/targets.dir/engine.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/targets.dir/engine.cpp.o -MF CMakeFiles/targets.dir/engine.cpp.o.d -o CMakeFiles/targets.dir/engine.cpp.o -c /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/engine.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/targets.dir/engine.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/targets.dir/engine.cpp.o -MF CMakeFiles/targets.dir/engine.cpp.o.d -o CMakeFiles/targets.dir/engine.cpp.o -c /home/viniciuscgp/Desktop/TargetsGame/engine.cpp
 
 CMakeFiles/targets.dir/engine.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/targets.dir/engine.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/engine.cpp > CMakeFiles/targets.dir/engine.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/viniciuscgp/Desktop/TargetsGame/engine.cpp > CMakeFiles/targets.dir/engine.cpp.i
 
 CMakeFiles/targets.dir/engine.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/targets.dir/engine.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/engine.cpp -o CMakeFiles/targets.dir/engine.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/viniciuscgp/Desktop/TargetsGame/engine.cpp -o CMakeFiles/targets.dir/engine.cpp.s
 
 # Object files for target targets
 targets_OBJECTS = \
@@ -126,7 +126,7 @@ targets: CMakeFiles/targets.dir/engine.cpp.o
 targets: CMakeFiles/targets.dir/build.make
 targets: /usr/lib/x86_64-linux-gnu/libSDL2.so
 targets: CMakeFiles/targets.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable targets"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable targets"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/targets.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -138,6 +138,6 @@ CMakeFiles/targets.dir/clean:
 .PHONY : CMakeFiles/targets.dir/clean
 
 CMakeFiles/targets.dir/depend:
-	cd /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build /home/viniciuscgp/Desktop/laboratorio/cplusplus/targets/build/CMakeFiles/targets.dir/DependInfo.cmake "--color=$(COLOR)"
+	cd /home/viniciuscgp/Desktop/TargetsGame/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/viniciuscgp/Desktop/TargetsGame /home/viniciuscgp/Desktop/TargetsGame /home/viniciuscgp/Desktop/TargetsGame/build /home/viniciuscgp/Desktop/TargetsGame/build /home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles/targets.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/targets.dir/depend
 
