@@ -2,6 +2,15 @@
 
 Um jogo simples estilo *space shooter*, feito em **C++** com **SDL2**, para fins de aprendizado e diversão. A engine do jogo é independente e pode ser reutilizada em outros projetos.
 
+# 👽 Plot
+
+No ano de 2147, a Terra é atacada por uma frota de UFOs bizarros: cada nave inimiga tem a forma da própria cara dos alienígenas que a pilotam, como se fossem monstros voadores atravessando o espaço.
+
+Esses seres, conhecidos como Morkons, querem transformar a Terra em sua nova colônia, drenando tudo o que encontram pelo caminho.
+
+Você é o piloto da última nave de defesa da humanidade.
+Sua missão é clara: atravessar enxames de UFOs-caras, enfrentar os líderes alienígenas e impedir a invasão antes que seja tarde demais.
+
 ## 🎮 Sobre o Jogo
 
 Você controla uma nave espacial que deve destruir inimigos enquanto desvia deles.  
@@ -20,14 +29,16 @@ Você controla uma nave espacial que deve destruir inimigos enquanto desvia dele
 - **Espaço** → Atirar / Iniciar jogo  
 - **Esc** → Sair do jogo  
 
+## 📦 Resources
+- Sounds: https://freesound.org/
+- Imagens: https://chatgpt.com/
+
 ## 🛠️ Build e Instalação
 
 **Pré-requisitos**
 - CMake 3.10 ou superior
 - Compilador C++ com suporte a C++17
 - SDL2, SDL2_image e SDL2_mixer
-
----
 
 ### **🐧 Linux (Ubuntu/Debian)**
 

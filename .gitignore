@@ -33,7 +33,7 @@
 
 # CMake
 build/
-CMakeFiles/
+CMakeiles/
 CMakeCache.txt
 cmake_install.cmake
 *.cmake
