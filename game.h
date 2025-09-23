@@ -2,35 +2,33 @@
 #include "engine.h"
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 class TargetsGame {
 private:
     Engine g;
 
     GameObject* title = nullptr;
-    GameObject* push = nullptr;
-    GameObject* nave = nullptr;
-    GameObject* over = nullptr;
+    GameObject* push  = nullptr;
+    GameObject* nave  = nullptr;
+    GameObject* gover = nullptr;
 
     std::vector<GameObject*> nave_tiros;
     std::vector<GameObject*> inimigos;
     std::vector<GameObject*> estrelas;
-    std::vector<int> inimigos_texturas;
 
-    int explosao_sn = -1;
-    int tiro_tx     = -1;
-    int tiro_sn     = -1;
-    int score       =  0;
-    int lifes       =  2;
+    int score  = 0;
+    int lifes  = 2;
+    int state  = 0;
 
-    int state = 0;
-    const int MAX_NAVE_TIRO = 4;
-    const int TOTAL_ESTRELA = 30;
+    const int MAX_SHIP_FIRE = 4;
+    const int TOTAL_STARS   = 30;
+    const int TOTAL_ENEMY   = 7;
 
     // Estados
-    const int STATE_TITLE    = 0;
-    const int STATE_PLAYING  = 1;
-    const int STATE_GAMEOVER = 2;
+    const int ST_TITLE    = 0;
+    const int ST_PLAYING  = 1;
+    const int ST_GAMEOVER = 2;
 
     // Tipos
     const int T_NAVE      = 0;
@@ -46,6 +44,7 @@ private:
     void controlaEstrelas();
     void criaInimigos();
     void mudaEstado(int estado);
+    void carregaRecursos();
 
 public:
     TargetsGame() = default;

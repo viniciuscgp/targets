@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(SDL2 REQUIRED)
 
-add_executable(targets targets.cpp game.cpp engine.cpp)
+add_executable(targets targets.cpp game.cpp engine.cpp gameobject.cpp)
 
 target_include_directories(targets PRIVATE
     ${SDL2_INCLUDE_DIRS}

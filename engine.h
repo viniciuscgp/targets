@@ -10,48 +10,20 @@
 #include <algorithm>
 #include <iostream>
 #include <cstdarg>
-
-class GameObject
-{
-public:
-    float x, y;
-    float force_x, force_y;
-    float friction;
-    int w, h;
-    int texture_index;
-    int type;
-    int depth;
-    bool visible;
-
-    GameObject(int x, int y, int w, int h, int texture_index, int type = 0, int depth = 0)
-        : x(x), y(y), w(w), h(h), texture_index(texture_index), type(type), depth(depth), visible(true)
-    {
-        force_x = 0;
-        force_y = 0;
-        friction = 0;
-    }
-
-    void calculate();
-};
-
-class GameResource
-{
-public:
-    int type;
-    std::string tag;
-    SDL_Texture *texture;
-    Mix_Chunk *sound;
-    GameResource(int type, const std::string &tag, SDL_Texture *texture = nullptr, Mix_Chunk *sound = nullptr)
-        : type(type), tag(tag), texture(texture), sound(sound) {}
-};
+#include <unordered_map>
+#include "resources.h"
+#include "gameobject.h"
 
 class Engine
 {
 private:
+    static constexpr const char* TEXTURE_PREFIX = "t";
+    static constexpr const char* SOUND_PREFIX = "s";
+
     int w, h;
     SDL_Window *window = nullptr;
     SDL_Renderer *renderer = nullptr;
-    std::vector<GameResource> resource_list;
+    std::unordered_map<std::string, GameResource> resources;
 
     // controle de objetos
     std::vector<std::unique_ptr<GameObject>> objects;
@@ -65,25 +37,18 @@ public:
 
     SDL_Renderer *getRenderer() { return renderer; }
 
-    SDL_Texture *loadImage(const char *path);
-    void drawImage(int texture_index, int x, int y, int w = 0, int h = 0);
+    void drawImage(std::string texture, int x, int y, int w = 0, int h = 0);
     void drawObject(GameObject *go);
 
     bool checkCollision(const GameObject &a, const GameObject &b);
 
-    int choose(int count, ...);
-    int choose(std::initializer_list<int> values);
+    SDL_Texture *loadImage(std::string path);
+    void loadTexture(std::string path, std::string tag);
 
-    SDL_Texture *getTexture(int texture_index);
-    int loadTexture(const char *path, const char *tag);
-    int loadTexture(const char *path);
+    void loadSound(std::string path, std::string tag);
+    void playSound(std::string snd);
 
-    int loadSound(const char *path, const char *tag);
-    int loadSound(const char *path);
-    void playSound(int sound_index);
-
-    GameObject *createGameObject(int x, int y, int w, int h, int texture_index, int type = 0, int depth = 0);
-    GameObject *createGameObject(int x, int y, int w, int h, const char *texture_path, int type = 0, int depth = 0);
+    GameObject *createGameObject(int x, int y, int w, int h, std::string texture, int type = 0, int depth = 0);
 
     void centerXGameObject(GameObject *go);
     void centerYGameObject(GameObject *go);
@@ -93,6 +58,9 @@ public:
 
     int getW();
     int getH();
+
+    int choose(int count, ...);
+    int choose(std::initializer_list<int> values);
 
     void calculateAll();
     void renderAll();

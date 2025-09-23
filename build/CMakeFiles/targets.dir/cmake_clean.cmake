@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/targets.dir/engine.cpp.o.d"
   "CMakeFiles/targets.dir/game.cpp.o"
   "CMakeFiles/targets.dir/game.cpp.o.d"
+  "CMakeFiles/targets.dir/gameobject.cpp.o"
+  "CMakeFiles/targets.dir/gameobject.cpp.o.d"
   "CMakeFiles/targets.dir/targets.cpp.o"
   "CMakeFiles/targets.dir/targets.cpp.o.d"
   "targets"

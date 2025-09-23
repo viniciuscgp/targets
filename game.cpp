@@ -44,7 +44,7 @@ void TargetsGame::controlaTirosJogador()
                 g.destroyGameObject(tiro);
                 nave_tiros.erase(nave_tiros.begin() + i);
                 atingiu = true;
-                g.playSound(explosao_sn);
+                g.playSound("explosao");
                 break;
             }
         }
@@ -60,9 +60,12 @@ void TargetsGame::controlaInimigos()
     {
         obj->y += 0.3;
 
-        if (obj->type == T_INIMIGO_1) obj->x += 2;
-        if (obj->type == T_INIMIGO_2) obj->x += 3;
-        if (obj->type == T_INIMIGO_3) obj->x += 4;
+        if (obj->type == T_INIMIGO_1)
+            obj->x += 2;
+        if (obj->type == T_INIMIGO_2)
+            obj->x += 3;
+        if (obj->type == T_INIMIGO_3)
+            obj->x += 4;
 
         if (obj->x > g.getW())
         {
@@ -92,34 +95,58 @@ void TargetsGame::criaInimigos()
     for (int i = 0; i < 10; i++)
     {
         int tipo = g.choose({T_INIMIGO_1, T_INIMIGO_2, T_INIMIGO_3});
-        int r = std::rand() % inimigos_texturas.size();
+        int r = std::rand() % TOTAL_ENEMY;
+        std::string key = "alien_" + std::to_string(r + 1);
+
         inimigos.push_back(g.createGameObject(i * 80, -300 + (tipo * 70),
-                                                   64, 64, inimigos_texturas[r], tipo, 1));
+                                              64, 64,
+                                              key,
+                                              tipo, 1));
     }
 }
 
 void TargetsGame::mudaEstado(int estado_mudar)
 {
     title->visible = false;
-    over->visible = false;
+    gover->visible = false;
     push->visible = false;
     nave->visible = false;
 
-    if (estado_mudar == STATE_PLAYING)
+    if (estado_mudar == ST_PLAYING)
     {
         nave->visible = true;
     }
-    if (estado_mudar == STATE_TITLE)
+    if (estado_mudar == ST_TITLE)
     {
         title->visible = true;
         push->visible = true;
     }
-    if (estado_mudar == STATE_GAMEOVER)
+    if (estado_mudar == ST_GAMEOVER)
     {
-        over->visible = true;
+        gover->visible = true;
         push->visible = true;
     }
     state = estado_mudar;
+}
+
+void TargetsGame::carregaRecursos()
+{
+    g.loadTexture("assets/title.png", "title");
+    g.loadTexture("assets/game_over.png", "gover");
+    g.loadTexture("assets/push_space_key.png", "push");
+    g.loadTexture("assets/nave.png", "nave");
+    g.loadTexture("assets/nave_tiro.png", "tiro");
+    g.loadTexture("assets/estrela.png", "estrela");
+
+    for (int i = 0; i < TOTAL_ENEMY; i++)
+    {
+        std::string file = "assets/alien_" + std::to_string(i + 1) + ".png";
+        std::string key = "alien_" + std::to_string(i + 1);
+        g.loadTexture(file, key);
+    }
+
+    g.loadSound("assets/nave_tiro.wav", "tiro");
+    g.loadSound("assets/inimigo_explode.wav", "explosao");
 }
 
 // =========================================
@@ -132,39 +159,31 @@ int TargetsGame::run()
     if (!g.init("Targets", 800, 600))
         return 1;
 
-    // Recursos
-    title = g.createGameObject(0, 0, g.getW() / 2, g.getW() / 2, "assets/title.png", 0, 0);
-    over = g.createGameObject(0, 0, g.getW() / 2, g.getW() / 2, "assets/game_over.png", 0, 0);
-    push = g.createGameObject(0, g.getH() - 180, 0, 0, "assets/push_space_key.png", 0, 0);
-    nave = g.createGameObject(400, 500, 64, 64, "assets/nave.png", T_NAVE, 5);
+    carregaRecursos();
+
+    // Cria os objetos --------------------
+
+    title = g.createGameObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
+    gover = g.createGameObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
+    push = g.createGameObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
+    nave = g.createGameObject(400, 500, 64, 64, "nave", T_NAVE, 5);
 
     g.centerGameObject(title);
     g.centerXGameObject(push);
-    g.centerGameObject(over);
+    g.centerGameObject(gover);
 
-    tiro_tx = g.loadTexture("assets/nave_tiro.png");
-    tiro_sn = g.loadSound("assets/nave_tiro.wav");
-    explosao_sn = g.loadSound("assets/inimigo_explode.wav");
-
-    for (int i = 0; i < 7; i++)
-    {
-        std::string file = "assets/alien_" + std::to_string(i + 1) + ".png";
-        inimigos_texturas.push_back(g.loadTexture(file.c_str()));
-    }
-
-    int estrela_tx = g.loadTexture("assets/estrela.png");
-    for (int i = 0; i < TOTAL_ESTRELA; i++)
+    for (int i = 0; i < TOTAL_STARS; i++)
     {
         int x = std::rand() % g.getW();
         int y = std::rand() % g.getH();
-        GameObject* go = g.createGameObject(x, y, 8, 8, estrela_tx, T_ESTRELA, 0);
+        GameObject *go = g.createGameObject(x, y, 8, 8, "estrela", T_ESTRELA, 0);
         go->force_y = g.choose({1, 2, 3});
         estrelas.push_back(go);
     }
 
     SDL_Event e;
     bool rodando = true;
-    mudaEstado(STATE_TITLE);
+    mudaEstado(ST_TITLE);
 
     while (rodando)
     {
@@ -177,23 +196,27 @@ int TargetsGame::run()
 
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE)
             {
-                if (state == STATE_PLAYING)
+                if (state == ST_PLAYING)
                 {
-                    if (nave_tiros.size() < MAX_NAVE_TIRO)
+                    if (nave_tiros.size() < MAX_SHIP_FIRE)
                     {
-                        GameObject* go = g.createGameObject((int)nave->x + nave->w / 2 - 2, (int)nave->y,12, 16, tiro_tx, T_TIRO, 2);
+                        GameObject *go = g.createGameObject((int)nave->x + nave->w / 2 - 2,
+                                                            (int)nave->y,
+                                                            12, 16,
+                                                            "tiro",
+                                                            T_TIRO, 2);
                         nave_tiros.push_back(go);
-                        g.playSound(tiro_sn);
+                        g.playSound("tiro");
                     }
                 }
                 else
                 {
-                    mudaEstado(STATE_PLAYING);
+                    mudaEstado(ST_PLAYING);
                 }
             }
         }
 
-        if (state == STATE_PLAYING)
+        if (state == ST_PLAYING)
         {
             controlaJogador(nave);
             controlaTirosJogador();

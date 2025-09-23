@@ -10,6 +10,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/viniciuscgp/Desktop/TargetsGame/engine.cpp" "CMakeFiles/targets.dir/engine.cpp.o" "gcc" "CMakeFiles/targets.dir/engine.cpp.o.d"
   "/home/viniciuscgp/Desktop/TargetsGame/game.cpp" "CMakeFiles/targets.dir/game.cpp.o" "gcc" "CMakeFiles/targets.dir/game.cpp.o.d"
+  "/home/viniciuscgp/Desktop/TargetsGame/gameobject.cpp" "CMakeFiles/targets.dir/gameobject.cpp.o" "gcc" "CMakeFiles/targets.dir/gameobject.cpp.o.d"
   "/home/viniciuscgp/Desktop/TargetsGame/targets.cpp" "CMakeFiles/targets.dir/targets.cpp.o" "gcc" "CMakeFiles/targets.dir/targets.cpp.o.d"
   )
 

@@ -1,25 +1,20 @@
 #include "engine.h"
 
-// =============================
-// Engine
-// =============================
-const int RT_TEXTURE = 1;
-const int RT_SOUND = 2;
-
-void GameObject::calculate()
-{
-    y += force_y;
-    x += force_x;
-}
-
 Engine::~Engine()
 {
-    for (GameResource res : resource_list)
-    {
-        if (res.type == RT_TEXTURE)
+    for (auto& [key, res] : resources) {
+        if (res.type == GameResource::TEXTURE) {
             SDL_DestroyTexture(res.texture);
+            res.texture = nullptr;
+        }
+        if (res.type == GameResource::SOUND) {
+            Mix_FreeChunk(res.sound);
+            res.sound = nullptr;
+        }
+        
     }
-    resource_list.clear();
+
+    resources.clear();
 
     if (renderer)
         SDL_DestroyRenderer(renderer);
@@ -74,9 +69,9 @@ bool Engine::init(const char *title, int w, int h)
     return true;
 }
 
-SDL_Texture *Engine::loadImage(const char *path)
+SDL_Texture *Engine::loadImage(std::string path)
 {
-    SDL_Surface *surface = IMG_Load(path);
+    SDL_Surface *surface = IMG_Load(path.c_str());
     if (!surface)
     {
         std::cerr << "Erro IMG_Load: " << IMG_GetError() << std::endl;
@@ -87,7 +82,7 @@ SDL_Texture *Engine::loadImage(const char *path)
     return tex;
 }
 
-void Engine::drawImage(int texture_index, int x, int y, int w, int h)
+void Engine::drawImage(std::string texture, int x, int y, int w, int h)
 {
     SDL_Rect dst;
     dst.x = x;
@@ -95,110 +90,53 @@ void Engine::drawImage(int texture_index, int x, int y, int w, int h)
     dst.w = w;
     dst.h = h;
 
-    SDL_RenderCopy(renderer, resource_list[texture_index].texture, nullptr, &dst);
+    SDL_RenderCopy(renderer, resources[TEXTURE_PREFIX + texture].texture, nullptr, &dst);
 }
 
 void Engine::drawObject(GameObject *go)
 {
-    drawImage(go->texture_index, go->x, go->y, go->w, go->h);
+    drawImage(go->texture, go->x, go->y, go->w, go->h);
 }
 
-bool Engine::checkCollision(const GameObject &a, const GameObject &b)
-{
-    return (a.x < b.x + b.w &&
-            a.x + a.w > b.x &&
-            a.y < b.y + b.h &&
-            a.y + a.h > b.y);
-}
-
-int Engine::choose(int count, ...)
-{
-    if (count <= 0)
-        return -1;
-    std::va_list args;
-    va_start(args, count);
-    int idx = std::rand() % count;
-    int result = -1;
-    for (int i = 0; i <= idx; ++i)
-    {
-        result = va_arg(args, int);
-    }
-    va_end(args);
-    return result;
-}
-
-int Engine::choose(std::initializer_list<int> values)
-{
-    if (values.size() == 0)
-        return -1;
-    int idx = std::rand() % values.size();
-    auto it = values.begin();
-    std::advance(it, idx);
-    return *it;
-}
-
-int Engine::loadTexture(const char *path, const char *tag)
+void Engine::loadTexture(std::string path, std::string tag)
 {
     SDL_Texture *texture = loadImage(path);
-    resource_list.push_back(GameResource(RT_TEXTURE, tag, texture, nullptr));
-    return resource_list.size() - 1;
+    resources[TEXTURE_PREFIX + tag] = GameResource::CreateTexture(texture);
 }
 
-int Engine::loadTexture(const char *path)
+void Engine::playSound(std::string snd)
 {
-    return loadTexture(path, "");
-}
-
-SDL_Texture *Engine::getTexture(int texture_index)
-{
-    return resource_list[texture_index].texture;
-}
-
-void Engine::playSound(int sound_index)
-{
-    Mix_Chunk *sound = resource_list[sound_index].sound;
+    Mix_Chunk *sound = resources[SOUND_PREFIX + snd].sound;
     Mix_PlayChannel(-1, sound, 0);
 }
 
-int Engine::loadSound(const char *path, const char *tag)
+void Engine::loadSound(std::string path, std::string tag)
 {
-    Mix_Chunk *sound = Mix_LoadWAV(path);
+    Mix_Chunk *sound = Mix_LoadWAV(path.c_str());
     if (!sound)
     {
         std::cerr << "Erro Mix_LoadWAV: " << Mix_GetError() << std::endl;
-        return -1;
+        return;
     }
-    resource_list.push_back({RT_SOUND, tag, nullptr, sound});
-    return resource_list.size() - 1;
+    resources[SOUND_PREFIX + tag] = GameResource::CreateSound(sound);
 }
 
-int Engine::loadSound(const char *path)
+GameObject *Engine::createGameObject(int x, int y, int w, int h, std::string texture, int type, int depth)
 {
-    return loadSound(path, "");
-}
-
-GameObject *Engine::createGameObject(int x, int y, int w, int h, int texture_index, int type, int depth)
-{
-    auto text = getTexture(texture_index);
+    auto text = resources[texture].texture;
 
     int texW, texH;
-    SDL_QueryTexture(resource_list[texture_index].texture, nullptr, nullptr, &texW, &texH);
+    SDL_QueryTexture(text, nullptr, nullptr, &texW, &texH);
     if (w == 0)
         w = texW;
     if (h == 0)
         h = texH;
 
-    auto obj = std::make_unique<GameObject>(x, y, w, h, texture_index, type, depth);
+    auto obj = std::make_unique<GameObject>(x, y, w, h, texture, type, depth);
     GameObject *ptr = obj.get();
     objects.push_back(std::move(obj));
     ordered_objects.push_back(ptr);
     return ptr;
-}
-
-GameObject *Engine::createGameObject(int x, int y, int w, int h, const char *texture_path, int type, int depth)
-{
-    int texture_index = loadTexture(texture_path, "");
-    return createGameObject(x, y, w, h, texture_index, type, depth);
 }
 
 void Engine::centerXGameObject(GameObject *go)
@@ -275,3 +213,38 @@ int Engine::getH()
 {
     return h;
 }
+
+bool Engine::checkCollision(const GameObject &a, const GameObject &b)
+{
+    return (a.x < b.x + b.w &&
+            a.x + a.w > b.x &&
+            a.y < b.y + b.h &&
+            a.y + a.h > b.y);
+}
+
+int Engine::choose(int count, ...)
+{
+    if (count <= 0)
+        return -1;
+    std::va_list args;
+    va_start(args, count);
+    int idx = std::rand() % count;
+    int result = -1;
+    for (int i = 0; i <= idx; ++i)
+    {
+        result = va_arg(args, int);
+    }
+    va_end(args);
+    return result;
+}
+
+int Engine::choose(std::initializer_list<int> values)
+{
+    if (values.size() == 0)
+        return -1;
+    int idx = std::rand() % values.size();
+    auto it = values.begin();
+    std::advance(it, idx);
+    return *it;
+}
+
