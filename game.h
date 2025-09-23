@@ -8,14 +8,14 @@ class TargetsGame {
 private:
     Engine g;
 
-    GameObject* title = nullptr;
-    GameObject* push  = nullptr;
-    GameObject* nave  = nullptr;
-    GameObject* gover = nullptr;
+    Object* title = nullptr;
+    Object* push  = nullptr;
+    Object* nave  = nullptr;
+    Object* gover = nullptr;
 
-    std::vector<GameObject*> nave_tiros;
-    std::vector<GameObject*> inimigos;
-    std::vector<GameObject*> estrelas;
+    std::vector<Object*> nave_tiros;
+    std::vector<Object*> inimigos;
+    std::vector<Object*> estrelas;
 
     int score  = 0;
     int lifes  = 2;
@@ -38,7 +38,7 @@ private:
     const int T_ESTRELA   = 100;
     const int T_TIRO      = 200;
 
-    void controlaJogador(GameObject* jogador);
+    void controlaJogador(Object* jogador);
     void controlaTirosJogador();
     void controlaInimigos();
     void controlaEstrelas();

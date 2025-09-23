@@ -2,16 +2,18 @@
 
 Engine::~Engine()
 {
-    for (auto& [key, res] : resources) {
-        if (res.type == GameResource::TEXTURE) {
+    for (auto &[key, res] : resources)
+    {
+        if (res.type == GameResource::TEXTURE)
+        {
             SDL_DestroyTexture(res.texture);
             res.texture = nullptr;
         }
-        if (res.type == GameResource::SOUND) {
+        if (res.type == GameResource::SOUND)
+        {
             Mix_FreeChunk(res.sound);
             res.sound = nullptr;
         }
-        
     }
 
     resources.clear();
@@ -54,7 +56,11 @@ bool Engine::init(const char *title, int w, int h)
         return false;
     }
 
-    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG))
+    // Inicializa solicitando suporte a PNG
+    int initialized_flags = IMG_Init(IMG_INIT_PNG);
+
+    // Verifica se o PNG foi realmente inicializado
+    if ((initialized_flags & IMG_INIT_PNG) != IMG_INIT_PNG)
     {
         std::cerr << "Erro IMG_Init: " << IMG_GetError() << std::endl;
         return false;
@@ -69,20 +75,7 @@ bool Engine::init(const char *title, int w, int h)
     return true;
 }
 
-SDL_Texture *Engine::loadImage(std::string path)
-{
-    SDL_Surface *surface = IMG_Load(path.c_str());
-    if (!surface)
-    {
-        std::cerr << "Erro IMG_Load: " << IMG_GetError() << std::endl;
-        return nullptr;
-    }
-    SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
-    return tex;
-}
-
-void Engine::drawImage(std::string texture, int x, int y, int w, int h)
+void Engine::drawImage(std::string image, int x, int y, int w, int h)
 {
     SDL_Rect dst;
     dst.x = x;
@@ -90,17 +83,25 @@ void Engine::drawImage(std::string texture, int x, int y, int w, int h)
     dst.w = w;
     dst.h = h;
 
-    SDL_RenderCopy(renderer, resources[TEXTURE_PREFIX + texture].texture, nullptr, &dst);
+    SDL_RenderCopy(renderer, resources[TEXTURE_PREFIX + image].texture, nullptr, &dst);
 }
 
-void Engine::drawObject(GameObject *go)
+void Engine::drawObject(Object *go)
 {
-    drawImage(go->texture, go->x, go->y, go->w, go->h);
+    drawImage(go->getCurrentImageRef(), go->x, go->y, go->w, go->h);
 }
 
-void Engine::loadTexture(std::string path, std::string tag)
+void Engine::loadImage(std::string path, std::string tag)
 {
-    SDL_Texture *texture = loadImage(path);
+    SDL_Surface *surface = IMG_Load(path.c_str());
+    if (!surface)
+    {
+        std::cerr << "Erro IMG_Load: " << IMG_GetError() << std::endl;
+        return;
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
     resources[TEXTURE_PREFIX + tag] = GameResource::CreateTexture(texture);
 }
 
@@ -121,7 +122,7 @@ void Engine::loadSound(std::string path, std::string tag)
     resources[SOUND_PREFIX + tag] = GameResource::CreateSound(sound);
 }
 
-GameObject *Engine::createGameObject(int x, int y, int w, int h, std::string texture, int type, int depth)
+Object *Engine::createObject(int x, int y, int w, int h, std::string texture, int type, int depth)
 {
     auto text = resources[texture].texture;
 
@@ -132,30 +133,30 @@ GameObject *Engine::createGameObject(int x, int y, int w, int h, std::string tex
     if (h == 0)
         h = texH;
 
-    auto obj = std::make_unique<GameObject>(x, y, w, h, texture, type, depth);
-    GameObject *ptr = obj.get();
+    auto obj = std::make_unique<Object>(x, y, w, h, texture, type, depth);
+    Object *ptr = obj.get();
     objects.push_back(std::move(obj));
     ordered_objects.push_back(ptr);
     return ptr;
 }
 
-void Engine::centerXGameObject(GameObject *go)
+void Engine::centerXObject(Object *go)
 {
     go->x = (w - go->w) / 2;
 }
 
-void Engine::centerYGameObject(GameObject *go)
+void Engine::centerYObject(Object *go)
 {
     go->y = (h - go->h) / 2;
 }
 
-void Engine::centerGameObject(GameObject *go)
+void Engine::centerObject(Object *go)
 {
     go->x = (w - go->w) / 2;
     go->y = (h - go->h) / 2;
 }
 
-void Engine::destroyGameObject(GameObject *obj)
+void Engine::destroyObject(Object *obj)
 {
     ordered_objects.erase(std::remove(ordered_objects.begin(), ordered_objects.end(), obj), ordered_objects.end());
 
@@ -172,7 +173,7 @@ void Engine::destroyGameObject(GameObject *obj)
 void Engine::calculateAll()
 {
     // calcula
-    for (GameObject *obj : ordered_objects)
+    for (Object *obj : ordered_objects)
     {
         obj->calculate();
     }
@@ -185,11 +186,11 @@ void Engine::renderAll()
 
     // Ordena
     std::sort(ordered_objects.begin(), ordered_objects.end(),
-              [](GameObject *a, GameObject *b)
+              [](Object *a, Object *b)
               { return a->depth < b->depth; });
 
     // Renderiza
-    for (GameObject *obj : ordered_objects)
+    for (Object *obj : ordered_objects)
     {
         if (obj->visible)
             drawObject(obj);
@@ -214,7 +215,7 @@ int Engine::getH()
     return h;
 }
 
-bool Engine::checkCollision(const GameObject &a, const GameObject &b)
+bool Engine::checkCollision(const Object &a, const Object &b)
 {
     return (a.x < b.x + b.w &&
             a.x + a.w > b.x &&
@@ -247,4 +248,3 @@ int Engine::choose(std::initializer_list<int> values)
     std::advance(it, idx);
     return *it;
 }
-

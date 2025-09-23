@@ -5,7 +5,7 @@
 // =========================================
 // Controle de objetos
 // =========================================
-void TargetsGame::controlaJogador(GameObject *jogador)
+void TargetsGame::controlaJogador(Object *jogador)
 {
     const Uint8 *state = SDL_GetKeyboardState(NULL);
     if (state[SDL_SCANCODE_RIGHT])
@@ -23,12 +23,12 @@ void TargetsGame::controlaTirosJogador()
     size_t i = 0;
     while (i < nave_tiros.size())
     {
-        GameObject *tiro = nave_tiros[i];
+        Object *tiro = nave_tiros[i];
         tiro->y -= 8;
 
         if (tiro->y < 0)
         {
-            g.destroyGameObject(tiro);
+            g.destroyObject(tiro);
             nave_tiros.erase(nave_tiros.begin() + i);
             continue;
         }
@@ -38,10 +38,10 @@ void TargetsGame::controlaTirosJogador()
         {
             if (g.checkCollision(*tiro, *inimigos[j]))
             {
-                g.destroyGameObject(inimigos[j]);
+                g.destroyObject(inimigos[j]);
                 inimigos.erase(inimigos.begin() + j);
 
-                g.destroyGameObject(tiro);
+                g.destroyObject(tiro);
                 nave_tiros.erase(nave_tiros.begin() + i);
                 atingiu = true;
                 g.playSound("explosao");
@@ -98,7 +98,7 @@ void TargetsGame::criaInimigos()
         int r = std::rand() % TOTAL_ENEMY;
         std::string key = "alien_" + std::to_string(r + 1);
 
-        inimigos.push_back(g.createGameObject(i * 80, -300 + (tipo * 70),
+        inimigos.push_back(g.createObject(i * 80, -300 + (tipo * 70),
                                               64, 64,
                                               key,
                                               tipo, 1));
@@ -131,18 +131,18 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
 void TargetsGame::carregaRecursos()
 {
-    g.loadTexture("assets/title.png", "title");
-    g.loadTexture("assets/game_over.png", "gover");
-    g.loadTexture("assets/push_space_key.png", "push");
-    g.loadTexture("assets/nave.png", "nave");
-    g.loadTexture("assets/nave_tiro.png", "tiro");
-    g.loadTexture("assets/estrela.png", "estrela");
+    g.loadImage("assets/title.png", "title");
+    g.loadImage("assets/game_over.png", "gover");
+    g.loadImage("assets/push_space_key.png", "push");
+    g.loadImage("assets/nave.png", "nave");
+    g.loadImage("assets/nave_tiro.png", "tiro");
+    g.loadImage("assets/estrela.png", "estrela");
 
     for (int i = 0; i < TOTAL_ENEMY; i++)
     {
         std::string file = "assets/alien_" + std::to_string(i + 1) + ".png";
         std::string key = "alien_" + std::to_string(i + 1);
-        g.loadTexture(file, key);
+        g.loadImage(file, key);
     }
 
     g.loadSound("assets/nave_tiro.wav", "tiro");
@@ -163,20 +163,20 @@ int TargetsGame::run()
 
     // Cria os objetos --------------------
 
-    title = g.createGameObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
-    gover = g.createGameObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
-    push = g.createGameObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
-    nave = g.createGameObject(400, 500, 64, 64, "nave", T_NAVE, 5);
+    title = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
+    gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
+    push = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
+    nave = g.createObject(400, 500, 64, 64, "nave", T_NAVE, 5);
 
-    g.centerGameObject(title);
-    g.centerXGameObject(push);
-    g.centerGameObject(gover);
+    g.centerObject(title);
+    g.centerXObject(push);
+    g.centerObject(gover);
 
     for (int i = 0; i < TOTAL_STARS; i++)
     {
         int x = std::rand() % g.getW();
         int y = std::rand() % g.getH();
-        GameObject *go = g.createGameObject(x, y, 8, 8, "estrela", T_ESTRELA, 0);
+        Object *go = g.createObject(x, y, 8, 8, "estrela", T_ESTRELA, 0);
         go->force_y = g.choose({1, 2, 3});
         estrelas.push_back(go);
     }
@@ -200,7 +200,7 @@ int TargetsGame::run()
                 {
                     if (nave_tiros.size() < MAX_SHIP_FIRE)
                     {
-                        GameObject *go = g.createGameObject((int)nave->x + nave->w / 2 - 2,
+                        Object *go = g.createObject((int)nave->x + nave->w / 2 - 2,
                                                             (int)nave->y,
                                                             12, 16,
                                                             "tiro",

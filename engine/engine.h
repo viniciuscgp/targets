@@ -26,8 +26,8 @@ private:
     std::unordered_map<std::string, GameResource> resources;
 
     // controle de objetos
-    std::vector<std::unique_ptr<GameObject>> objects;
-    std::vector<GameObject *> ordered_objects;
+    std::vector<std::unique_ptr<Object>> objects;
+    std::vector<Object *> ordered_objects;
 
 public:
     Engine() = default;
@@ -38,23 +38,21 @@ public:
     SDL_Renderer *getRenderer() { return renderer; }
 
     void drawImage(std::string texture, int x, int y, int w = 0, int h = 0);
-    void drawObject(GameObject *go);
+    void drawObject(Object *go);
 
-    bool checkCollision(const GameObject &a, const GameObject &b);
+    bool checkCollision(const Object &a, const Object &b);
 
-    SDL_Texture *loadImage(std::string path);
-    void loadTexture(std::string path, std::string tag);
-
+    void loadImage(std::string path, std::string tag);
     void loadSound(std::string path, std::string tag);
     void playSound(std::string snd);
 
-    GameObject *createGameObject(int x, int y, int w, int h, std::string texture, int type = 0, int depth = 0);
+    Object *createObject(int x, int y, int w, int h, std::string texture, int type = 0, int depth = 0);
 
-    void centerXGameObject(GameObject *go);
-    void centerYGameObject(GameObject *go);
-    void centerGameObject(GameObject *go);
+    void centerXObject(Object *go);
+    void centerYObject(Object *go);
+    void centerObject(Object *go);
 
-    void destroyGameObject(GameObject *obj);
+    void destroyObject(Object *obj);
 
     int getW();
     int getH();
