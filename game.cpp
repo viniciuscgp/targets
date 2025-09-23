@@ -143,6 +143,7 @@ void TargetsGame::carregaRecursos()
         std::string file = "assets/alien_" + std::to_string(i + 1) + ".png";
         std::string key = "alien_" + std::to_string(i + 1);
         g.loadImage(file, key);
+        
     }
 
     g.loadSound("assets/nave_tiro.wav", "tiro");

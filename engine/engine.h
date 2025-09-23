@@ -37,14 +37,15 @@ public:
 
     SDL_Renderer *getRenderer() { return renderer; }
 
-    void drawImage(std::string texture, int x, int y, int w = 0, int h = 0);
+    void loadImage(std::string path, std::string tag);
+    void splitImage(std::string baseImageRef, int numberOfParts, std::string baseTag);   
+    void drawImage(std::string imageRef, int x, int y, int w = 0, int h = 0);
     void drawObject(Object *go);
 
     bool checkCollision(const Object &a, const Object &b);
 
-    void loadImage(std::string path, std::string tag);
     void loadSound(std::string path, std::string tag);
-    void playSound(std::string snd);
+    void playSound(std::string soundRef);
 
     Object *createObject(int x, int y, int w, int h, std::string texture, int type = 0, int depth = 0);
 

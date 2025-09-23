@@ -5,6 +5,10 @@ void Object::calculate()
 {
     y += force_y;
     x += force_x;
+
+    image_index += image_speed;
+    if ((int) image_index >= images.size()) 
+        image_index = images.size() - 1;
 }
 
 Object::~Object()

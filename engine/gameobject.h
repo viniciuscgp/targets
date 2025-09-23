@@ -15,7 +15,8 @@ public:
     int type;
     int depth;
     bool visible;
-    int image_index;
+    float image_index;
+    float image_speed;
     vector<string> images;
 
     ~Object();
@@ -27,6 +28,7 @@ public:
         force_y = 0;
         friction = 0;
         image_index = 0;
+        image_speed = 0;
     }
 
     Object(int x, int y, int w, int h, string image, int type = 0, int depth = 0):Object(x, y, w, h, type, depth)

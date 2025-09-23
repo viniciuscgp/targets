@@ -33,7 +33,7 @@ bool Engine::init(const char *title, int w, int h)
     this->w = w;
     this->h = h;
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
         std::cerr << "Erro SDL_Init: " << SDL_GetError() << std::endl;
         return false;
@@ -75,7 +75,7 @@ bool Engine::init(const char *title, int w, int h)
     return true;
 }
 
-void Engine::drawImage(std::string image, int x, int y, int w, int h)
+void Engine::drawImage(std::string imageRef, int x, int y, int w, int h)
 {
     SDL_Rect dst;
     dst.x = x;
@@ -83,7 +83,7 @@ void Engine::drawImage(std::string image, int x, int y, int w, int h)
     dst.w = w;
     dst.h = h;
 
-    SDL_RenderCopy(renderer, resources[TEXTURE_PREFIX + image].texture, nullptr, &dst);
+    SDL_RenderCopy(renderer, resources[TEXTURE_PREFIX + imageRef].texture, nullptr, &dst);
 }
 
 void Engine::drawObject(Object *go)
@@ -105,13 +105,125 @@ void Engine::loadImage(std::string path, std::string tag)
     resources[TEXTURE_PREFIX + tag] = GameResource::CreateTexture(texture);
 }
 
-void Engine::playSound(std::string snd)
+void Engine::splitImage(std::string baseImageRef, int numberOfParts, std::string baseTag)
 {
-    Mix_Chunk *sound = resources[SOUND_PREFIX + snd].sound;
+    // Primeiro verifica se a textura base existe
+    std::string fullRef = TEXTURE_PREFIX + baseImageRef;
+    if (resources.find(fullRef) == resources.end()) {
+        std::cerr << "Erro: Textura base '" << baseImageRef << "' não encontrada!" << std::endl;
+        return;
+    }
+
+    // Obtém a textura original
+    SDL_Texture* originalTexture = resources[fullRef].texture;
+    if (!originalTexture) {
+        std::cerr << "Erro: Textura base é nula!" << std::endl;
+        return;
+    }
+
+    // Obtém as dimensões da textura original
+    int originalWidth, originalHeight;
+    SDL_QueryTexture(originalTexture, NULL, NULL, &originalWidth, &originalHeight);
+
+    // Calcula a distribuição entre linhas superior e inferior
+    int partsTop, partsBottom;
+    
+    if (numberOfParts <= 1) {
+        std::cerr << "Erro: Número de partes deve ser pelo menos 2!" << std::endl;
+        return;
+    }
+    
+    // Lógica de distribuição
+    if (numberOfParts % 2 == 0) {
+        // Par: divide igualmente
+        partsTop = numberOfParts / 2;
+        partsBottom = numberOfParts / 2;
+    } else {
+        // Ímpar: par em cima, ímpar embaixo
+        partsTop = (numberOfParts + 1) / 2;  // Arredonda para cima
+        partsBottom = numberOfParts / 2;     // Arredonda para baixo
+    }
+
+    // Calcula dimensões de cada parte
+    int partWidth = originalWidth / std::max(partsTop, partsBottom);
+    int partHeight = originalHeight / 2;
+
+    if (partWidth <= 0 || partHeight <= 0) {
+        std::cerr << "Erro: Número de partes muito grande para a textura!" << std::endl;
+        return;
+    }
+
+    int partIndex = 0;
+
+    // Cria partes da linha superior
+    for (int i = 0; i < partsTop; i++) {
+        SDL_Texture* partTexture = SDL_CreateTexture(renderer, 
+                                                    SDL_PIXELFORMAT_RGBA8888, 
+                                                    SDL_TEXTUREACCESS_TARGET, 
+                                                    partWidth, partHeight);
+        
+        if (!partTexture) {
+            std::cerr << "Erro ao criar textura da parte " << partIndex << ": " << SDL_GetError() << std::endl;
+            partIndex++;
+            continue;
+        }
+
+        // Configura o renderer para desenhar na textura da parte
+        SDL_SetRenderTarget(renderer, partTexture);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderClear(renderer);
+
+        // Define a região de origem (linha superior)
+        SDL_Rect srcRect = { i * partWidth, 0, partWidth, partHeight };
+        SDL_Rect dstRect = { 0, 0, partWidth, partHeight };
+
+        SDL_RenderCopy(renderer, originalTexture, &srcRect, &dstRect);
+        SDL_SetRenderTarget(renderer, NULL);
+
+        // Armazena a parte
+        std::string partTag = baseTag + std::to_string(partIndex + 1);
+        resources[TEXTURE_PREFIX + partTag] = GameResource::CreateTexture(partTexture);
+        partIndex++;
+    }
+
+    // Cria partes da linha inferior
+    for (int i = 0; i < partsBottom; i++) {
+        SDL_Texture* partTexture = SDL_CreateTexture(renderer, 
+                                                    SDL_PIXELFORMAT_RGBA8888, 
+                                                    SDL_TEXTUREACCESS_TARGET, 
+                                                    partWidth, partHeight);
+        
+        if (!partTexture) {
+            std::cerr << "Erro ao criar textura da parte " << partIndex << ": " << SDL_GetError() << std::endl;
+            partIndex++;
+            continue;
+        }
+
+        SDL_SetRenderTarget(renderer, partTexture);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderClear(renderer);
+
+        // Define a região de origem (linha inferior)
+        SDL_Rect srcRect = { i * partWidth, partHeight, partWidth, partHeight };
+        SDL_Rect dstRect = { 0, 0, partWidth, partHeight };
+
+        SDL_RenderCopy(renderer, originalTexture, &srcRect, &dstRect);
+        SDL_SetRenderTarget(renderer, NULL);
+
+        std::string partTag = baseTag + std::to_string(partIndex + 1);
+        resources[TEXTURE_PREFIX + partTag] = GameResource::CreateTexture(partTexture);
+        partIndex++;
+    }
+}
+
+
+void Engine::playSound(std::string soundRef)
+{
+    Mix_Chunk *sound = resources[SOUND_PREFIX + soundRef].sound;
     Mix_PlayChannel(-1, sound, 0);
 }
 
-void Engine::loadSound(std::string path, std::string tag)
+void Engine::loadSound(std::string path, std::string soundRef)
 {
     Mix_Chunk *sound = Mix_LoadWAV(path.c_str());
     if (!sound)
@@ -119,12 +231,12 @@ void Engine::loadSound(std::string path, std::string tag)
         std::cerr << "Erro Mix_LoadWAV: " << Mix_GetError() << std::endl;
         return;
     }
-    resources[SOUND_PREFIX + tag] = GameResource::CreateSound(sound);
+    resources[SOUND_PREFIX + soundRef] = GameResource::CreateSound(sound);
 }
 
-Object *Engine::createObject(int x, int y, int w, int h, std::string texture, int type, int depth)
+Object *Engine::createObject(int x, int y, int w, int h, std::string imageRef, int type, int depth)
 {
-    auto text = resources[texture].texture;
+    auto text = resources[imageRef].texture;
 
     int texW, texH;
     SDL_QueryTexture(text, nullptr, nullptr, &texW, &texH);
@@ -133,7 +245,7 @@ Object *Engine::createObject(int x, int y, int w, int h, std::string texture, in
     if (h == 0)
         h = texH;
 
-    auto obj = std::make_unique<Object>(x, y, w, h, texture, type, depth);
+    auto obj = std::make_unique<Object>(x, y, w, h, imageRef, type, depth);
     Object *ptr = obj.get();
     objects.push_back(std::move(obj));
     ordered_objects.push_back(ptr);
