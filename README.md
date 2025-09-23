@@ -1,34 +1,103 @@
 # 🎯 The Targets
 
-Um jogo simples estilo *space shooter*, feito em **C++** com **SDL2**, para fins de aprendizado e diversão.
-Esse projeto pode ser usado como base para criação de outros joguinhos do tipo, já que a classe Engine é independente de projeto. Inclusive a classe TargetsGame, que base pra esse game, poderá ser adaptada facilmente.
+Um jogo simples estilo *space shooter*, feito em **C++** com **SDL2**, para fins de aprendizado e diversão. A engine do jogo é independente e pode ser reutilizada em outros projetos.
 
-## 🚀 Sobre o jogo (em construção)
+## 🎮 Sobre o Jogo
 
 Você controla uma nave espacial que deve destruir inimigos enquanto desvia deles.  
-O jogo possui:
-
+**Características:**
 - Tela de título com "Push Space Key"
 - Nave controlável pelo teclado
 - Estrelas no fundo se movendo
 - Inimigos com padrões diferentes de movimento
 - Tiros da nave (limitados)
 - Efeitos sonoros de disparo e explosão
-- Tela de **Game Over** (em desenvolvimento)
+- Tela de **Game Over**
 
-## 🎮 Controles
+## ⌨️ Controles
 
-- **Setas direcionais** → mover a nave  
-- **Espaço** → atirar / iniciar o jogo  
-- **Esc** → sair do jogo  
+- **Setas direcionais** → Mover a nave  
+- **Espaço** → Atirar / Iniciar jogo  
+- **Esc** → Sair do jogo  
 
-## 🔧 Dependências
+## 🛠️ Build e Instalação
 
-- [SDL2](https://www.libsdl.org/)  
-- [SDL2_image](https://www.libsdl.org/projects/SDL_image/)  
-- [SDL2_mixer](https://www.libsdl.org/projects/SDL_mixer/)  
+**Pré-requisitos**
+- CMake 3.10 ou superior
+- Compilador C++ com suporte a C++17
+- SDL2, SDL2_image e SDL2_mixer
 
-No Ubuntu/Debian/Mint, instale com:
+---
+
+### **🐧 Linux (Ubuntu/Debian)**
 
 ```bash
-sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+# Instalar dependências
+sudo apt-get update
+sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev cmake build-essential
+
+# Clonar e compilar o projeto
+git clone [seu-repositorio]
+cd the-targets
+mkdir build && cd build
+cmake ..
+make
+```
+
+## Executar
+```bash
+./targets
+```
+
+## 🪟 Windows
+
+### Instalar vcpkg
+```bash
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+.\\bootstrap-vcpkg.bat
+
+# Instalar dependências
+.\\vcpkg install sdl2 sdl2-image sdl2-mixer
+
+# Compilar o projeto
+mkdir build
+cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=[caminho-para-vcpkg]\\scripts\\buildsystems\\vcpkg.cmake ..
+cmake --build .
+```
+## Executar
+```bash
+targets.exe
+```
+
+### 🍎 macOS
+
+## Instalar dependências via Homebrew
+```bash
+brew install sdl2 sdl2_image sdl2_mixer cmake
+```
+## Compilar o projeto
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
+
+# Executar
+```bash
+./targets 
+```
+
+## 📝 Licença
+Este projeto é open-source e está sob a licença MIT.
+
+## 🤝 Contribuições
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+Reportar bugs
+
+Sugerir novas funcionalidades
+
+Enviar pull requests
+

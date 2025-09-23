@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/targets.dir/targets.cpp.o CMakeFiles/targets.dir/game.cpp.o CMakeFiles/targets.dir/engine.cpp.o CMakeFiles/targets.dir/gameobject.cpp.o -o targets  /usr/lib/x86_64-linux-gnu/libSDL2.so -lSDL2_image -lSDL2_mixer 

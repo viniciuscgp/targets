@@ -1,3 +1,0 @@
-/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles/targets.dir
-/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles/edit_cache.dir
-/home/viniciuscgp/Desktop/TargetsGame/build/CMakeFiles/rebuild_cache.dir
