@@ -296,10 +296,14 @@ Object *Engine::createObject(int x, int y, int w, int h, std::string imageRef, i
     if (h == 0)
         h = texH;
 
+    if (x == this->RANDOM_X) x = std::rand() % getW();      
+    if (y == this->RANDOM_Y) y = std::rand() % getH();
+
     auto obj = std::make_unique<Object>(x, y, w, h, imageRef, type, depth);
     Object *ptr = obj.get();
     objects.push_back(std::move(obj));
     ordered_objects.push_back(ptr);
+    ptr->engine = this;
     return ptr;
 }
 
@@ -446,3 +450,5 @@ string Engine::padzero(int n, int width)
         s.insert(0, width - s.size(), '0');
     return s;
 }
+
+

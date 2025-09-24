@@ -47,16 +47,22 @@ private:
     unordered_map<FontKey, TTF_Font *, FontKeyHash> fontCache;
 
 public:
-   // RNG único por thread (bem leve)
-    static inline std::mt19937& rng() {
-        static thread_local std::mt19937 gen{ std::random_device{}() };
+    static constexpr const int RANDOM_X = 99999999;
+    static constexpr const int RANDOM_Y = 99999999;
+
+    // RNG único por thread (bem leve)
+    static inline std::mt19937 &rng()
+    {
+        static thread_local std::mt19937 gen{std::random_device{}()};
         return gen;
     }
 
     // 1) choose({a, b, c})
     template <typename T>
-    static T choose(std::initializer_list<T> values) {
-        if (values.size() == 0) return T{};
+    static T choose(std::initializer_list<T> values)
+    {
+        if (values.size() == 0)
+            return T{};
         std::uniform_int_distribution<std::size_t> dist(0, values.size() - 1);
         auto it = values.begin();
         std::advance(it, dist(rng()));
@@ -65,22 +71,24 @@ public:
 
     // 2) choose(container) — vector/deque/etc.
     template <typename Container>
-    static auto choose(const Container& c) -> typename Container::value_type {
-        if (c.empty()) return typename Container::value_type{};
+    static auto choose(const Container &c) -> typename Container::value_type
+    {
+        if (c.empty())
+            return typename Container::value_type{};
         std::uniform_int_distribution<std::size_t> dist(0, c.size() - 1);
         return *(std::begin(c) + dist(rng()));
     }
 
     // 3) choose(a, b, c, ...) — parâmetros variádicos
     template <typename T, typename... Ts>
-    static std::decay_t<T> choose(T&& first, Ts&&... rest) {
+    static std::decay_t<T> choose(T &&first, Ts &&...rest)
+    {
         using U = std::decay_t<T>;
         constexpr std::size_t N = sizeof...(Ts) + 1;
-        std::array<U, N> arr{ { std::forward<T>(first), std::forward<Ts>(rest)... } };
+        std::array<U, N> arr{{std::forward<T>(first), std::forward<Ts>(rest)...}};
         std::uniform_int_distribution<std::size_t> dist(0, N - 1);
         return arr[dist(rng())];
     }
-
 
     Engine() = default;
     ~Engine();
@@ -121,4 +129,10 @@ public:
     void clear();
 
     string padzero(int n, int width);
+
+    template <typename T>
+    void log(const std::string &msg, const T &value)
+    {
+        std::cerr << msg << value << '\n';
+    }
 };

@@ -1,4 +1,5 @@
 #include "gameobject.h"
+#include "engine.h"
 #include <iostream>
 #include <cmath>
 
@@ -20,6 +21,19 @@ void Object::calculate()
     y += force_y;
     x += force_x;
 
+    // wrap horizontal
+    if (wraph)
+    {
+        if (x + w > engine->getW()) x = -w;
+        if (x < -w) x = engine->getW();
+    }
+    //wrap vertical
+    if (wrapv)
+    {
+        if (y + h > engine->getH()) y = -h;
+        if (y < -h) y = engine->getH();
+    }
+
     force_x = applyFriction(force_x, friction);
     force_y = applyFriction(force_y, friction);
 
@@ -40,7 +54,18 @@ void Object::calculate()
     {
         angle = 0;
     }
-  
+
+    // Alarmes
+    for (int i = alarms.size() - 1; i >= 0; --i)
+    {
+        if (--alarms[i] <= 0)
+        {
+            if (onAlarmFinished)
+                onAlarmFinished(this, i);
+            alarms.erase(alarms.begin() + i);
+        }
+    }
+
     if (onAfterCalculate)
     {
         onAfterCalculate(this);
@@ -61,4 +86,22 @@ string Object::getCurrentImageRef()
     if (images.size() == 0)
         return "";
     return images[(int)image_index];
+}
+
+void Object::alarmSet(int frames)
+{
+    alarms.push_back(frames);
+}
+
+void Object::setFont(string name, int size, Color color)
+{
+    font_name = "assets/fonts/" + name;
+    font_size = size;
+    font_color = color;
+}
+
+void Object::setWrap(bool h, bool v)
+{
+    wraph = h;
+    wrapv = v;
 }

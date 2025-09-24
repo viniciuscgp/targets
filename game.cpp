@@ -12,10 +12,6 @@ void TargetsGame::controlaJogador(Object *jogador)
         jogador->x += 5;
     if (state[SDL_SCANCODE_LEFT])
         jogador->x -= 5;
-    // if (state[SDL_SCANCODE_DOWN])
-    //     jogador->y += 5;
-    // if (state[SDL_SCANCODE_UP])
-    //     jogador->y -= 5;
 }
 
 void TargetsGame::controlaTirosJogador()
@@ -48,6 +44,7 @@ void TargetsGame::controlaTirosJogador()
                 g.playSound("explosao");
 
                 score += 10;
+                hi += 10;
 
                 break;
             }
@@ -91,16 +88,6 @@ void TargetsGame::controlaInimigos()
     }
 }
 
-void TargetsGame::controlaEstrelas()
-{
-    for (auto *e : estrelas)
-    {
-        if (e->y > g.getH())
-        {
-            e->y = 0;
-        }
-    }
-}
 
 void TargetsGame::criaInimigos()
 {
@@ -120,29 +107,53 @@ void TargetsGame::criaInimigos()
 
 void TargetsGame::mudaEstado(int estado_mudar)
 {
-    title->visible = false;
-    gover->visible = false;
-    push->visible = false;
-    nave->visible = false;
-    display_score->visible = false;
-    
+    if (estado_mudar == 0)
+    {
+        switch (state)
+        {
+        case ST_TITLE:
+            estado_mudar = ST_WAVE;
+            break;
+        case ST_WAVE:
+            estado_mudar = ST_PLAYING;
+            break;
+        case ST_PLAYING:
+            estado_mudar = ST_GAMEOVER;
+            break;
+        case ST_GAMEOVER:
+            estado_mudar = ST_TITLE;
+            break;
+        default:
+            break;
+        }
+    }
+    cerr << "estado atual:" << STATES[state]  << endl;      
+    cerr << "estado mudar:" << STATES[estado_mudar]  << endl;      
+
     if (estado_mudar == ST_TITLE)
     {
-        title->visible = true;
-        push->visible = true;
+        criaObjetos("title");
+        criaObjetos("push");
     }
-    
+
+    if (estado_mudar == ST_WAVE)
+    {
+        g.destroyObject(title);
+        g.destroyObject(push);
+        criaObjetos("wave");
+    }
+
     if (estado_mudar == ST_PLAYING)
     {
-        nave->visible = true;
-        display_score->visible = true;
+        g.destroyObject(display_wave);
+        criaObjetos("score");
+        criaObjetos("nave");
     }
 
     if (estado_mudar == ST_GAMEOVER)
     {
-        gover->visible = true;
-        push->visible = true;
-        display_score->visible = true;
+        g.destroyObject(nave);
+        criaObjetos("gameover");
     }
     state = estado_mudar;
 }
@@ -152,7 +163,8 @@ void TargetsGame::carregaRecursos()
     g.loadImage("assets/title.png", "title");
     g.loadImage("assets/game_over.png", "gover");
     g.loadImage("assets/push_space_key.png", "push");
-    g.loadImage("assets/nave.png", "nave");
+    g.loadImage("assets/nave_1.png", "nave_1");
+    g.loadImage("assets/nave_2.png", "nave_2");
     g.loadImage("assets/nave_tiro.png", "tiro");
     g.loadImage("assets/estrela.png", "estrela");
 
@@ -168,6 +180,80 @@ void TargetsGame::carregaRecursos()
     g.loadSound("assets/inimigo_explode.wav", "explosao");
 }
 
+void TargetsGame::criaObjetos(string qual)
+{
+    if (qual == "title")
+    {
+        title = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
+        g.centerObject(title);
+        g.log("criado: ", qual);
+    }
+
+    if (qual == "push")
+    {
+        push = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
+        g.centerXObject(push);
+        g.log("criado: ", qual);
+    }
+
+    if (qual == "wave")
+    {
+        display_wave = g.createObject(g.getW() / 2 - 32, g.getH() / 2 + 90, 64, 64, "", 0, 0);
+        display_wave->setFont("FontdinerSwanky-Regular.ttf", 48, Object::COLOR_WHITE);
+        display_wave->alarmSet(180);
+        display_wave->onBeforeDraw = [this](Object *self)
+        {
+            self->text = "WAVE " + g.padzero(wave, 2);
+        };
+        display_wave->onAlarmFinished = [this](Object *self, int index)
+        {
+            this->mudaEstado(0);
+        };
+        g.log("criado: ", qual);
+    }
+    
+    if (qual == "gameover")
+    {
+        gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
+        gover->alarmSet(240);
+        gover->onAlarmFinished = [this](Object *self, int index)
+        {
+            self->visible = false;
+            this->mudaEstado(ST_TITLE);
+        };
+        g.centerObject(gover);
+        g.log("criado: ", qual);
+    }
+
+    if (qual == "nave")
+    {
+        nave = g.createObject(400, 400, 64, 64, "nave_1", 0, 5);
+        nave->images.push_back("nave_2");
+        nave->image_speed = 0.2;
+        nave->onAnimationEnd = [](Object *self){self->image_index = 0;};
+        g.log("criado: ", qual);
+    }
+
+    if (qual == "score")
+    {
+        display_score = g.createObject(40, 60, 64, 64, "", 0, 0);
+        display_score->setFont("Roboto_Condensed-Black.ttf", 24, Object::COLOR_YELLOW);
+        display_score->onBeforeDraw = [this](Object *self)
+        {
+            self->text = "SCORE: " + g.padzero(score, 4);
+        };
+
+        display_hi = g.createObject(g.getW() - 40 - 60, 60, 64, 64, "", 0, 0);
+        display_hi->setFont("Roboto_Condensed-Black.ttf", 24, Object::COLOR_YELLOW);
+        display_hi->onBeforeDraw = [this](Object *self)
+        {
+            self->text = "HI: " + g.padzero(score, 4);
+        };
+
+        g.log("criado: ", qual);
+    }
+}
+
 // =========================================
 // Loop principal
 // =========================================
@@ -180,31 +266,12 @@ int TargetsGame::run()
 
     carregaRecursos();
 
-    // Cria os objetos --------------------
-
-    title   = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
-    gover   = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
-    push    = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
-    nave    = g.createObject(400, 500, 64, 64, "nave", 0, 5);
-
-    display_score = g.createObject(40, 60, 64, 64, "", 0, 0);
-    display_score->font_name = "assets/fonts/Roboto_Condensed-Black.ttf";
-    display_score->font_size = 24;
-    display_score->text = "Score:";
-    display_score->onBeforeDraw = [this](Object *self){ self->text = "Score: " + g.padzero(score, 4);};
-    display_score->font_color = {255, 200, 0, 255};
-
-    g.centerObject(title);
-    g.centerXObject(push);
-    g.centerObject(gover);
-
     for (int i = 0; i < TOTAL_STARS; i++)
     {
-        int x = std::rand() % g.getW();
-        int y = std::rand() % g.getH();
-        Object *go = g.createObject(x, y, 8, 8, "estrela", 0, 1);
-        go->force_y = g.choose({1, 2, 3});
-        estrelas.push_back(go);
+        Object *o = g.createObject(g.RANDOM_X, g.RANDOM_Y, 8, 8, "estrela", 0, 1);
+        o->force_y = g.choose({1, 2, 3});
+        o->setWrap(true, true);
+        estrelas.push_back(o);
     }
 
     SDL_Event e;
@@ -217,6 +284,7 @@ int TargetsGame::run()
         {
             if (e.type == SDL_QUIT)
                 rodando = false;
+
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
                 rodando = false;
 
@@ -237,7 +305,7 @@ int TargetsGame::run()
                 }
                 else
                 {
-                    mudaEstado(ST_PLAYING);
+                    mudaEstado(0);
                 }
             }
         }
@@ -250,8 +318,6 @@ int TargetsGame::run()
             if (inimigos.empty())
                 criaInimigos();
         }
-        controlaEstrelas();
-
         g.calculateAll();
         g.renderAll();
         SDL_Delay(16);
