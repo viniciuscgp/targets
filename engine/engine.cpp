@@ -1,5 +1,10 @@
 #include "engine.h"
 
+static inline SDL_Color toSDL(const Color &c)
+{
+    return SDL_Color{c.r, c.g, c.b, c.a};
+}
+
 Engine::~Engine()
 {
     for (auto &[key, res] : resources)
@@ -23,9 +28,17 @@ Engine::~Engine()
     if (window)
         SDL_DestroyWindow(window);
 
+    for (auto &kv : fontCache)
+    {
+        if (kv.second)
+            TTF_CloseFont(kv.second);
+    }
+    fontCache.clear();
+
     Mix_CloseAudio();
     IMG_Quit();
     SDL_Quit();
+    TTF_Quit();
 }
 
 bool Engine::init(const char *title, int w, int h)
@@ -72,10 +85,15 @@ bool Engine::init(const char *title, int w, int h)
         return false;
     }
 
+    if (TTF_Init() != 0)
+    {
+        std::cerr << "TTF_Init failed: " << TTF_GetError() << "\n";
+    }
+
     return true;
 }
 
-void Engine::drawImage(std::string imageRef, int x, int y, int w, int h)
+void Engine::drawImage(std::string imageRef, int x, int y, int w, int h, float angle)
 {
     SDL_Rect dst;
     dst.x = x;
@@ -83,12 +101,63 @@ void Engine::drawImage(std::string imageRef, int x, int y, int w, int h)
     dst.w = w;
     dst.h = h;
 
-    SDL_RenderCopy(renderer, resources[TEXTURE_PREFIX + imageRef].texture, nullptr, &dst);
+    if (angle <= 0.0)
+    {
+        // desenha normal, sem rotação
+        SDL_RenderCopy(renderer,
+                       resources[TEXTURE_PREFIX + imageRef].texture,
+                       nullptr,
+                       &dst);
+    }
+    else
+    {
+        // ponto de rotação = centro
+        SDL_Point center{dst.w / 2, dst.h / 2};
+
+        SDL_RenderCopyEx(renderer,
+                         resources[TEXTURE_PREFIX + imageRef].texture,
+                         nullptr,
+                         &dst,
+                         angle,
+                         &center,
+                         SDL_FLIP_NONE);
+    }
 }
 
 void Engine::drawObject(Object *go)
 {
-    drawImage(go->getCurrentImageRef(), go->x, go->y, go->w, go->h);
+    if (go->onBeforeDraw)
+    {
+        go->onBeforeDraw(go);
+    }
+    // imagem
+    const std::string img = go->getCurrentImageRef();
+    if (!img.empty())
+    {
+        drawImage(img, (int)go->x, (int)go->y, go->w, go->h, go->angle);
+    }
+
+    // texto acima
+    if (!go->text.empty() && !go->font_name.empty())
+    {
+        int fsize = 16;
+        if (go->font_size > 0)
+            fsize = go->font_size;
+
+        TTF_Font *font = getFont(go->font_name, fsize);
+        if (font)
+        {
+            int tw = 0, th = 0;
+            TTF_SizeUTF8(font, go->text.c_str(), &tw, &th);
+
+            const int padding = 2;
+            int cx = (int)go->x + go->w / 2;
+            int ty = (int)go->y - th - padding;
+
+            SDL_Color white{255, 255, 255, 255};
+            drawText(go->text, cx, ty, go->font_name, fsize, toSDL(go->font_color), true);
+        }
+    }
 }
 
 void Engine::loadImage(std::string path, std::string tag)
@@ -107,115 +176,97 @@ void Engine::loadImage(std::string path, std::string tag)
 
 void Engine::splitImage(std::string baseImageRef, int numberOfParts, std::string baseTag)
 {
-    // Primeiro verifica se a textura base existe
     std::string fullRef = TEXTURE_PREFIX + baseImageRef;
-    if (resources.find(fullRef) == resources.end()) {
-        std::cerr << "Erro: Textura base '" << baseImageRef << "' não encontrada!" << std::endl;
+    if (resources.find(fullRef) == resources.end())
+    {
+        std::cerr << "Erro: Textura base '" << baseImageRef << "' não encontrada!\n";
         return;
     }
 
-    // Obtém a textura original
-    SDL_Texture* originalTexture = resources[fullRef].texture;
-    if (!originalTexture) {
-        std::cerr << "Erro: Textura base é nula!" << std::endl;
+    SDL_Texture *originalTexture = resources[fullRef].texture;
+    if (!originalTexture)
+    {
+        std::cerr << "Erro: Textura base é nula!\n";
         return;
     }
 
-    // Obtém as dimensões da textura original
+    if (numberOfParts <= 1)
+    {
+        std::cerr << "Erro: Número de partes deve ser pelo menos 2!\n";
+        return;
+    }
+
+    // Query original texture
+    Uint32 fmt;
+    int access;
     int originalWidth, originalHeight;
-    SDL_QueryTexture(originalTexture, NULL, NULL, &originalWidth, &originalHeight);
+    SDL_QueryTexture(originalTexture, &fmt, &access, &originalWidth, &originalHeight);
 
-    // Calcula a distribuição entre linhas superior e inferior
+    // Distribuição top/bottom
     int partsTop, partsBottom;
-    
-    if (numberOfParts <= 1) {
-        std::cerr << "Erro: Número de partes deve ser pelo menos 2!" << std::endl;
-        return;
-    }
-    
-    // Lógica de distribuição
-    if (numberOfParts % 2 == 0) {
-        // Par: divide igualmente
+    if (numberOfParts % 2 == 0)
+    {
         partsTop = numberOfParts / 2;
         partsBottom = numberOfParts / 2;
-    } else {
-        // Ímpar: par em cima, ímpar embaixo
-        partsTop = (numberOfParts + 1) / 2;  // Arredonda para cima
-        partsBottom = numberOfParts / 2;     // Arredonda para baixo
+    }
+    else
+    {
+        partsTop = (numberOfParts + 1) / 2; // arredonda pra cima
+        partsBottom = numberOfParts / 2;    // arredonda pra baixo
     }
 
-    // Calcula dimensões de cada parte
-    int partWidth = originalWidth / std::max(partsTop, partsBottom);
-    int partHeight = originalHeight / 2;
+    // Alturas (trata altura ímpar)
+    int topH = originalHeight / 2;
+    int bottomH = originalHeight - topH;
 
-    if (partWidth <= 0 || partHeight <= 0) {
-        std::cerr << "Erro: Número de partes muito grande para a textura!" << std::endl;
-        return;
-    }
+    auto createSlice = [&](int rowY, int rowH, int cols, int &partIndex)
+    {
+        if (cols <= 0 || rowH <= 0)
+            return;
+
+        // largura base da coluna
+        int colW = originalWidth / cols;
+
+        for (int i = 0; i < cols; ++i)
+        {
+            // Última coluna pega a sobra
+            int srcW = (i == cols - 1) ? (originalWidth - i * colW) : colW;
+            if (srcW <= 0)
+                continue;
+
+            SDL_Texture *partTexture = SDL_CreateTexture(renderer, fmt, SDL_TEXTUREACCESS_TARGET, srcW, rowH);
+            if (!partTexture)
+            {
+                std::cerr << "Erro ao criar textura da parte " << partIndex << ": " << SDL_GetError() << "\n";
+                ++partIndex;
+                continue;
+            }
+            SDL_SetTextureBlendMode(partTexture, SDL_BLENDMODE_BLEND);
+
+            SDL_SetRenderTarget(renderer, partTexture);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+            SDL_RenderClear(renderer);
+
+            SDL_Rect srcRect{i * colW, rowY, srcW, rowH};
+            SDL_Rect dstRect{0, 0, srcW, rowH};
+
+            SDL_RenderCopy(renderer, originalTexture, &srcRect, &dstRect);
+
+            SDL_SetRenderTarget(renderer, nullptr);
+
+            std::string partTag = baseTag + std::to_string(partIndex + 1);
+            resources[TEXTURE_PREFIX + partTag] = GameResource::CreateTexture(partTexture);
+
+            ++partIndex;
+        }
+    };
 
     int partIndex = 0;
-
-    // Cria partes da linha superior
-    for (int i = 0; i < partsTop; i++) {
-        SDL_Texture* partTexture = SDL_CreateTexture(renderer, 
-                                                    SDL_PIXELFORMAT_RGBA8888, 
-                                                    SDL_TEXTUREACCESS_TARGET, 
-                                                    partWidth, partHeight);
-        
-        if (!partTexture) {
-            std::cerr << "Erro ao criar textura da parte " << partIndex << ": " << SDL_GetError() << std::endl;
-            partIndex++;
-            continue;
-        }
-
-        // Configura o renderer para desenhar na textura da parte
-        SDL_SetRenderTarget(renderer, partTexture);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-        SDL_RenderClear(renderer);
-
-        // Define a região de origem (linha superior)
-        SDL_Rect srcRect = { i * partWidth, 0, partWidth, partHeight };
-        SDL_Rect dstRect = { 0, 0, partWidth, partHeight };
-
-        SDL_RenderCopy(renderer, originalTexture, &srcRect, &dstRect);
-        SDL_SetRenderTarget(renderer, NULL);
-
-        // Armazena a parte
-        std::string partTag = baseTag + std::to_string(partIndex + 1);
-        resources[TEXTURE_PREFIX + partTag] = GameResource::CreateTexture(partTexture);
-        partIndex++;
-    }
-
-    // Cria partes da linha inferior
-    for (int i = 0; i < partsBottom; i++) {
-        SDL_Texture* partTexture = SDL_CreateTexture(renderer, 
-                                                    SDL_PIXELFORMAT_RGBA8888, 
-                                                    SDL_TEXTUREACCESS_TARGET, 
-                                                    partWidth, partHeight);
-        
-        if (!partTexture) {
-            std::cerr << "Erro ao criar textura da parte " << partIndex << ": " << SDL_GetError() << std::endl;
-            partIndex++;
-            continue;
-        }
-
-        SDL_SetRenderTarget(renderer, partTexture);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-        SDL_RenderClear(renderer);
-
-        // Define a região de origem (linha inferior)
-        SDL_Rect srcRect = { i * partWidth, partHeight, partWidth, partHeight };
-        SDL_Rect dstRect = { 0, 0, partWidth, partHeight };
-
-        SDL_RenderCopy(renderer, originalTexture, &srcRect, &dstRect);
-        SDL_SetRenderTarget(renderer, NULL);
-
-        std::string partTag = baseTag + std::to_string(partIndex + 1);
-        resources[TEXTURE_PREFIX + partTag] = GameResource::CreateTexture(partTexture);
-        partIndex++;
-    }
+    // Linha de cima
+    createSlice(/*rowY=*/0, /*rowH=*/topH, /*cols=*/partsTop, partIndex);
+    // Linha de baixo
+    createSlice(/*rowY=*/topH, /*rowH=*/bottomH, /*cols=*/partsBottom, partIndex);
 }
-
 
 void Engine::playSound(std::string soundRef)
 {
@@ -282,6 +333,59 @@ void Engine::destroyObject(Object *obj)
     }
 }
 
+// Engine.cpp
+TTF_Font *Engine::getFont(const std::string &name, int size)
+{
+    FontKey key{name, size};
+    auto it = fontCache.find(key);
+    if (it != fontCache.end())
+        return it->second;
+
+    TTF_Font *f = TTF_OpenFont(name.c_str(), size);
+    if (!f)
+    {
+        std::cerr << "TTF_OpenFont failed (" << name << " " << size << "): " << TTF_GetError() << "\n";
+        return nullptr;
+    }
+    fontCache[key] = f;
+    return f;
+}
+
+void Engine::drawText(const std::string &text, int x, int y,
+                      const std::string &fontName, int fontSize,
+                      SDL_Color color, bool centered)
+{
+    if (text.empty())
+        return;
+
+    TTF_Font *font = getFont(fontName, fontSize); // <-- usa cache
+    if (!font)
+        return;
+
+    SDL_Surface *surf = TTF_RenderUTF8_Blended(font, text.c_str(), color);
+    if (!surf)
+        return;
+
+    SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surf);
+    if (!tex)
+    {
+        SDL_FreeSurface(surf);
+        return;
+    }
+
+    SDL_Rect dst{x, y, surf->w, surf->h};
+    if (centered)
+    {
+        dst.x = x - surf->w / 2;
+        dst.y = y - surf->h / 2;
+    }
+
+    SDL_RenderCopy(renderer, tex, nullptr, &dst);
+
+    SDL_DestroyTexture(tex);
+    SDL_FreeSurface(surf);
+}
+
 void Engine::calculateAll()
 {
     // calcula
@@ -297,9 +401,9 @@ void Engine::renderAll()
     SDL_RenderClear(renderer);
 
     // Ordena
-    std::sort(ordered_objects.begin(), ordered_objects.end(),
+    std::stable_sort(ordered_objects.begin(), ordered_objects.end(),
               [](Object *a, Object *b)
-              { return a->depth < b->depth; });
+              { return a->depth > b->depth; });
 
     // Renderiza
     for (Object *obj : ordered_objects)
@@ -335,28 +439,10 @@ bool Engine::checkCollision(const Object &a, const Object &b)
             a.y + a.h > b.y);
 }
 
-int Engine::choose(int count, ...)
+string Engine::padzero(int n, int width)
 {
-    if (count <= 0)
-        return -1;
-    std::va_list args;
-    va_start(args, count);
-    int idx = std::rand() % count;
-    int result = -1;
-    for (int i = 0; i <= idx; ++i)
-    {
-        result = va_arg(args, int);
-    }
-    va_end(args);
-    return result;
-}
-
-int Engine::choose(std::initializer_list<int> values)
-{
-    if (values.size() == 0)
-        return -1;
-    int idx = std::rand() % values.size();
-    auto it = values.begin();
-    std::advance(it, idx);
-    return *it;
+    std::string s = std::to_string(n);
+    if ((int)s.size() < width)
+        s.insert(0, width - s.size(), '0');
+    return s;
 }

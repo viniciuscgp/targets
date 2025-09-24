@@ -38,6 +38,7 @@ void TargetsGame::controlaTirosJogador()
         {
             if (g.checkCollision(*tiro, *inimigos[j]))
             {
+                inimigoExplosao(*inimigos[j]);
                 g.destroyObject(inimigos[j]);
                 inimigos.erase(inimigos.begin() + j);
 
@@ -45,6 +46,9 @@ void TargetsGame::controlaTirosJogador()
                 nave_tiros.erase(nave_tiros.begin() + i);
                 atingiu = true;
                 g.playSound("explosao");
+
+                score += 10;
+
                 break;
             }
         }
@@ -54,27 +58,35 @@ void TargetsGame::controlaTirosJogador()
     }
 }
 
+void TargetsGame::inimigoExplosao(Object o)
+{
+    string base = o.images[0] + "explode";
+    for (int i = 0; i < EXPL_SPLIT; i++)
+    {
+        Object *go = g.createObject(o.x, o.y, o.w / 2, o.h / 2, base + to_string(i), 0, 2);
+        go->image_speed = 0.02;
+        go->angle_speed = g.choose({5, 8, 10});
+        go->force_x = g.choose({-1, 1, -2, 2, -3, 3});
+        go->force_y = g.choose({-1, 1, -2, 2, -3, 3});
+        go->onAnimationEnd = [this](Object *self)
+        {
+            g.destroyObject(self);
+        };
+    }
+}
+
 void TargetsGame::controlaInimigos()
 {
     for (auto *obj : inimigos)
     {
-        obj->y += 0.3;
-
-        if (obj->type == T_INIMIGO_1)
-            obj->x += 2;
-        if (obj->type == T_INIMIGO_2)
-            obj->x += 3;
-        if (obj->type == T_INIMIGO_3)
-            obj->x += 4;
-
         if (obj->x > g.getW())
         {
-            obj->x = -64;
+            obj->x = -obj->w;
             obj->y += 32;
         }
         if (obj->y > g.getH())
         {
-            obj->y = -80;
+            obj->y = -obj->h;
         }
     }
 }
@@ -98,10 +110,11 @@ void TargetsGame::criaInimigos()
         int r = std::rand() % TOTAL_ENEMY;
         std::string key = "alien_" + std::to_string(r + 1);
 
-        inimigos.push_back(g.createObject(i * 80, -300 + (tipo * 70),
-                                              64, 64,
-                                              key,
-                                              tipo, 1));
+        Object *obj = g.createObject(i * 80, -300 + (tipo * 70), 64, 64, key, tipo, 1);
+        obj->force_x = g.choose(2, 3, 4, 5);
+        obj->force_y = g.choose(0.8f, 1.2f);
+
+        inimigos.push_back(obj);
     }
 }
 
@@ -111,20 +124,25 @@ void TargetsGame::mudaEstado(int estado_mudar)
     gover->visible = false;
     push->visible = false;
     nave->visible = false;
-
-    if (estado_mudar == ST_PLAYING)
-    {
-        nave->visible = true;
-    }
+    display_score->visible = false;
+    
     if (estado_mudar == ST_TITLE)
     {
         title->visible = true;
         push->visible = true;
     }
+    
+    if (estado_mudar == ST_PLAYING)
+    {
+        nave->visible = true;
+        display_score->visible = true;
+    }
+
     if (estado_mudar == ST_GAMEOVER)
     {
         gover->visible = true;
         push->visible = true;
+        display_score->visible = true;
     }
     state = estado_mudar;
 }
@@ -143,7 +161,7 @@ void TargetsGame::carregaRecursos()
         std::string file = "assets/alien_" + std::to_string(i + 1) + ".png";
         std::string key = "alien_" + std::to_string(i + 1);
         g.loadImage(file, key);
-        
+        g.splitImage(key, EXPL_SPLIT, key + "explode");
     }
 
     g.loadSound("assets/nave_tiro.wav", "tiro");
@@ -164,10 +182,17 @@ int TargetsGame::run()
 
     // Cria os objetos --------------------
 
-    title = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
-    gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
-    push = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
-    nave = g.createObject(400, 500, 64, 64, "nave", T_NAVE, 5);
+    title   = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
+    gover   = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
+    push    = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
+    nave    = g.createObject(400, 500, 64, 64, "nave", 0, 5);
+
+    display_score = g.createObject(40, 60, 64, 64, "", 0, 0);
+    display_score->font_name = "assets/fonts/Roboto_Condensed-Black.ttf";
+    display_score->font_size = 24;
+    display_score->text = "Score:";
+    display_score->onBeforeDraw = [this](Object *self){ self->text = "Score: " + g.padzero(score, 4);};
+    display_score->font_color = {255, 200, 0, 255};
 
     g.centerObject(title);
     g.centerXObject(push);
@@ -177,7 +202,7 @@ int TargetsGame::run()
     {
         int x = std::rand() % g.getW();
         int y = std::rand() % g.getH();
-        Object *go = g.createObject(x, y, 8, 8, "estrela", T_ESTRELA, 0);
+        Object *go = g.createObject(x, y, 8, 8, "estrela", 0, 1);
         go->force_y = g.choose({1, 2, 3});
         estrelas.push_back(go);
     }
@@ -202,10 +227,10 @@ int TargetsGame::run()
                     if (nave_tiros.size() < MAX_SHIP_FIRE)
                     {
                         Object *go = g.createObject((int)nave->x + nave->w / 2 - 2,
-                                                            (int)nave->y,
-                                                            12, 16,
-                                                            "tiro",
-                                                            T_TIRO, 2);
+                                                    (int)nave->y,
+                                                    12, 16,
+                                                    "tiro",
+                                                    0, 3);
                         nave_tiros.push_back(go);
                         g.playSound("tiro");
                     }

@@ -22,4 +22,5 @@ target_link_libraries(targets
     ${SDL2_LIBRARIES}
     SDL2_image
     SDL2_mixer
+    SDL2_ttf 
 )
