@@ -34,7 +34,7 @@ Engine::~Engine()
 }
 
 bool Engine::init(const char *title, int w, int h)
-{
+{  
     this->w = w;
     this->h = h;
 
@@ -71,14 +71,16 @@ bool Engine::init(const char *title, int w, int h)
         log("TTF_Init failed: ", TTF_GetError());
     }
 
+    running = true;
+
     return true;
 }
 
-void Engine::drawImage(std::string imageRef, int x, int y, int w, int h, float angle)
+void Engine::drawImage(string imageRef, int x, int y, int w, int h, float angle)
 {
     SDL_Rect dst{ x, y, w, h };
 
-    auto it = resources.find(std::string(TEXTURE_PREFIX) + imageRef);
+    auto it = resources.find(string(TEXTURE_PREFIX) + imageRef);
     if (it == resources.end() || !it->second.texture) return;
 
     if (angle <= 0.0f) {
@@ -94,7 +96,7 @@ void Engine::drawObject(Object *go)
     if (go->onBeforeDraw) go->onBeforeDraw(go);
 
     // imagem
-    const std::string img = go->getCurrentImageRef();
+    const string img = go->getCurrentImageRef();
     if (!img.empty()) {
         drawImage(img, (int)go->x, (int)go->y, go->w, go->h, go->angle);
     }
@@ -118,7 +120,7 @@ void Engine::drawObject(Object *go)
     }
 }
 
-void Engine::loadImage(std::string path, std::string tag)
+void Engine::loadImage(string path, string tag)
 {
     SDL_Surface *surface = IMG_Load(path.c_str());
     if (!surface) {
@@ -128,14 +130,14 @@ void Engine::loadImage(std::string path, std::string tag)
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
-    resources[std::string(TEXTURE_PREFIX) + tag] = GameResource::CreateTexture(texture);
+    resources[string(TEXTURE_PREFIX) + tag] = GameResource::CreateTexture(texture);
 }
 
-void Engine::splitImage(std::string baseImageRef, int numberOfParts, std::string baseTag)
+void Engine::splitImage(string baseImageRef, int numberOfParts, string baseTag)
 {
-    std::string fullRef = std::string(TEXTURE_PREFIX) + baseImageRef;
+    string fullRef = string(TEXTURE_PREFIX) + baseImageRef;
     if (resources.find(fullRef) == resources.end()) {
-        std::cerr << "Erro: Textura base '" << baseImageRef << "' não encontrada!\n";
+        cerr << "Erro: Textura base '" << baseImageRef << "' não encontrada!\n";
         return;
     }
 
@@ -178,7 +180,7 @@ void Engine::splitImage(std::string baseImageRef, int numberOfParts, std::string
 
             SDL_Texture *partTexture = SDL_CreateTexture(renderer, fmt, SDL_TEXTUREACCESS_TARGET, srcW, rowH);
             if (!partTexture) {
-                log("Erro ao criar textura da parte ", std::to_string(partIndex) + " - " + SDL_GetError());
+                log("Erro ao criar textura da parte ", to_string(partIndex) + " - " + SDL_GetError());
                 ++partIndex;
                 continue;
             }
@@ -194,8 +196,8 @@ void Engine::splitImage(std::string baseImageRef, int numberOfParts, std::string
 
             SDL_SetRenderTarget(renderer, nullptr);
 
-            std::string partTag = baseTag + std::to_string(partIndex + 1);
-            resources[std::string(TEXTURE_PREFIX) + partTag] = GameResource::CreateTexture(partTexture);
+            string partTag = baseTag + to_string(partIndex + 1);
+            resources[string(TEXTURE_PREFIX) + partTag] = GameResource::CreateTexture(partTexture);
 
             ++partIndex;
         }
@@ -206,23 +208,23 @@ void Engine::splitImage(std::string baseImageRef, int numberOfParts, std::string
     createSlice(topH,  bottomH, partsBottom, partIndex);
 }
 
-void Engine::playSound(std::string soundRef)
+void Engine::playSound(string soundRef)
 {
-    Mix_Chunk *sound = resources[std::string(SOUND_PREFIX) + soundRef].sound;
+    Mix_Chunk *sound = resources[string(SOUND_PREFIX) + soundRef].sound;
     Mix_PlayChannel(-1, sound, 0);
 }
 
-void Engine::loadSound(std::string path, std::string soundRef)
+void Engine::loadSound(string path, string soundRef)
 {
     Mix_Chunk *sound = Mix_LoadWAV(path.c_str());
     if (!sound) {
         log("Erro Mix_LoadWAV:  ", Mix_GetError());
         return;
     }
-    resources[std::string(SOUND_PREFIX) + soundRef] = GameResource::CreateSound(sound);
+    resources[string(SOUND_PREFIX) + soundRef] = GameResource::CreateSound(sound);
 }
 
-Object *Engine::createObject(int x, int y, int w, int h, std::string imageRef, int type, int depth)
+Object *Engine::createObject(int x, int y, int w, int h, string imageRef, int type, int depth)
 {
     if (resources.find(TEXTURE_PREFIX + imageRef) != resources.end())
     {        
@@ -238,7 +240,7 @@ Object *Engine::createObject(int x, int y, int w, int h, std::string imageRef, i
 
     auto obj = make_unique<Object>(x, y, w, h, imageRef, type, depth);
     Object *ptr = obj.get();
-    objects.push_back(std::move(obj));
+    objects.push_back(move(obj));
     ordered_objects.push_back(ptr);
     ptr->engine = this;
     return ptr;
@@ -250,13 +252,13 @@ void Engine::centerObject (Object *go) { centerXObject(go); centerYObject(go); }
 
 void Engine::destroyObject(Object *obj)
 {
-    ordered_objects.erase(std::remove(ordered_objects.begin(), ordered_objects.end(), obj), ordered_objects.end());
+    ordered_objects.erase(remove(ordered_objects.begin(), ordered_objects.end(), obj), ordered_objects.end());
     for (auto it = objects.begin(); it != objects.end(); ++it) {
         if (it->get() == obj) { objects.erase(it); break; }
     }
 }
 
-TTF_Font *Engine::getFont(const std::string &name, int size)
+TTF_Font *Engine::getFont(const string &name, int size)
 {
     FontKey key{ name, size };
     auto it = fontCache.find(key);
@@ -264,15 +266,15 @@ TTF_Font *Engine::getFont(const std::string &name, int size)
 
     TTF_Font *f = TTF_OpenFont(name.c_str(), size);
     if (!f) {
-        std::cerr << "TTF_OpenFont failed (" << name << " " << size << "): " << TTF_GetError() << "\n";
+        cerr << "TTF_OpenFont failed (" << name << " " << size << "): " << TTF_GetError() << "\n";
         return nullptr;
     }
     fontCache[key] = f;
     return f;
 }
 
-void Engine::drawText(const std::string &text, int x, int y,
-                      const std::string &fontName, int fontSize,
+void Engine::drawText(const string &text, int x, int y,
+                      const string &fontName, int fontSize,
                       SDL_Color color, bool centered)
 {
     if (text.empty()) return;
@@ -298,12 +300,19 @@ void Engine::drawText(const std::string &text, int x, int y,
     SDL_FreeSurface(surf);
 }
 
+void Engine::calculateAndRender()
+{
+    calculateAll();
+    renderAll();
+}
+
 void Engine::calculateAll()
 {
     inputBeginFrame();
-    for (Object *obj : ordered_objects) {
-        obj->calculate();
-    }
+    if (quitRequested() || keyPressed(SDL_SCANCODE_ESCAPE)) running = false;
+
+    for (Object *obj : ordered_objects)  obj->calculate();
+    
     processCollisions();
     flushDestroyQueue();
 }
@@ -314,7 +323,7 @@ void Engine::renderAll()
     SDL_RenderClear(renderer);
 
     // depth: maior primeiro (menor fica no topo, pois desenha por último)
-    std::stable_sort(ordered_objects.begin(), ordered_objects.end(),
+    stable_sort(ordered_objects.begin(), ordered_objects.end(),
         [](Object *a, Object *b){ return a->depth > b->depth; });
 
     for (Object *obj : ordered_objects) {
@@ -342,9 +351,9 @@ bool Engine::checkCollision(const Object &a, const Object &b)
            (a.y + a.h > b.y);
 }
 
-std::string Engine::padzero(int n, int width)
+string Engine::padzero(int n, int width)
 {
-    std::string s = std::to_string(n);
+    string s = to_string(n);
     if ((int)s.size() < width) s.insert(0, width - s.size(), '0');
     return s;
 }
@@ -372,13 +381,13 @@ static inline bool Engine_rectOverlap(const Object* a, const Object* b) {
 }
 
 static inline void Engine_putInCells(
-    std::unordered_map<Engine_CellKey, std::vector<Object*>, Engine_CellKeyHash>& grid,
+    unordered_map<Engine_CellKey, vector<Object*>, Engine_CellKeyHash>& grid,
     Object* o)
 {
-    int x0 = int(std::floor(o->x)) / ENGINE_COLL_CELL;
-    int y0 = int(std::floor(o->y)) / ENGINE_COLL_CELL;
-    int x1 = int(std::floor(o->x + o->w - 1)) / ENGINE_COLL_CELL;
-    int y1 = int(std::floor(o->y + o->h - 1)) / ENGINE_COLL_CELL;
+    int x0 = int(floor(o->x)) / ENGINE_COLL_CELL;
+    int y0 = int(floor(o->y)) / ENGINE_COLL_CELL;
+    int x1 = int(floor(o->x + o->w - 1)) / ENGINE_COLL_CELL;
+    int y1 = int(floor(o->y + o->h - 1)) / ENGINE_COLL_CELL;
 
     for (int gy = y0; gy <= y1; ++gy) {
         for (int gx = x0; gx <= x1; ++gx) {
@@ -389,7 +398,7 @@ static inline void Engine_putInCells(
 
 void Engine::processCollisions()
 {
-    std::unordered_map<Engine_CellKey, std::vector<Object*>, Engine_CellKeyHash> grid;
+    unordered_map<Engine_CellKey, vector<Object*>, Engine_CellKeyHash> grid;
     grid.reserve(ordered_objects.size() * 2);
 
     // 1) distribui objetos visíveis nas células
@@ -447,7 +456,7 @@ void Engine::flushDestroyQueue() {
     for (Object* obj : destroy_queue) {
         if (!obj) continue;
         // só destrói se ainda estiver vivo no Engine
-        auto it = std::find(ordered_objects.begin(), ordered_objects.end(), obj);
+        auto it = find(ordered_objects.begin(), ordered_objects.end(), obj);
         if (it != ordered_objects.end()) {
             destroyObject(obj); // usa sua função atual
         }

@@ -7,14 +7,13 @@ const int TAG_INIM = 2;
 
 void TargetsGame::controlaJogador(Object *jogador)
 {
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
-    if (state[SDL_SCANCODE_RIGHT])
+    if (g.keyHeld(SDL_SCANCODE_RIGHT))
     {
         jogador->x += 5;
         if (jogador->x > jogador->engine->getW())
             jogador->x = -jogador->w;
     }
-    if (state[SDL_SCANCODE_LEFT])
+    if (g.keyHeld(SDL_SCANCODE_LEFT))
     {
         jogador->x -= 5;
         if (jogador->x < -jogador->w)
@@ -103,8 +102,8 @@ void TargetsGame::carregaRecursos()
 
     for (int i = 0; i < TOTAL_ENEMY; i++)
     {
-        std::string file = "assets/alien_" + std::to_string(i + 1) + ".png";
-        std::string key = "alien_" + std::to_string(i + 1);
+        string file = "assets/alien_" + to_string(i + 1) + ".png";
+        string key = "alien_" + to_string(i + 1);
         g.loadImage(file, key);
         g.splitImage(key, EXPL_SPLIT, key + "explode");
     }
@@ -207,13 +206,22 @@ void TargetsGame::criaObjetos(string qual)
         for (int i = 0; i < 10; i++)
         {
             int tipo = g.choose({T_INIMIGO_1, T_INIMIGO_2, T_INIMIGO_3});
-            int r = std::rand() % TOTAL_ENEMY;
-            std::string key = "alien_" + std::to_string(r + 1);
+            int r = rand() % TOTAL_ENEMY;
+            string key = "alien_" + to_string(r + 1);
 
             Object *o = g.createObject(i * 80, -300 + (tipo * 70), 64, 64, key, tipo, 1);
             o->setForce(g.choose(2, 3, 4, 5), g.choose(0.8f, 1.2f));
             o->setWrap(true, true);
             o->tag = TAG_INIM;
+        }
+    }
+    if (qual == "estrelas") 
+    {
+        for (int i = 0; i < TOTAL_STARS; i++)
+        {
+            Object *o = g.createObject(g.RANDOM_X, g.RANDOM_Y, 8, 8, "estrela", 0, 1);
+            o->force_y = g.choose({1, 2, 3});
+            o->setWrap(true, true);
         }
     }
 }
@@ -223,47 +231,32 @@ void TargetsGame::criaObjetos(string qual)
 // =========================================
 int TargetsGame::run()
 {
-    std::srand(std::time(nullptr));
+    srand(time(nullptr));
 
     if (!g.init("Targets", 800, 600))
         return 1;
 
     carregaRecursos();
-
-    for (int i = 0; i < TOTAL_STARS; i++)
-    {
-        Object *o = g.createObject(g.RANDOM_X, g.RANDOM_Y, 8, 8, "estrela", 0, 1);
-        o->force_y = g.choose({1, 2, 3});
-        o->setWrap(true, true);
-    }
+    criaObjetos("estrelas");
 
     SDL_Event e;
     bool rodando = true;
     mudaEstado(ST_TITLE);
 
-    while (rodando)
+    while (g.running)
     {
-        while (SDL_PollEvent(&e))
+        if (g.keyPressed(SDL_SCANCODE_SPACE))
         {
-            if (e.type == SDL_QUIT)
-                rodando = false;
-
-            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
-                rodando = false;
-
-            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE)
+            if (state == ST_PLAYING)
             {
-                if (state == ST_PLAYING)
+                if (g.countObjectTags(TAG_TIRO_NAVE) < MAX_SHIP_FIRE)
                 {
-                    if (g.countObjectTags(TAG_TIRO_NAVE) < MAX_SHIP_FIRE)
-                    {
-                        criaObjetos("tironave");
-                    }
+                    criaObjetos("tironave");
                 }
-                else
-                {
-                    mudaEstado(0);
-                }
+            }
+            else
+            {
+                mudaEstado(0);
             }
         }
 
@@ -275,8 +268,7 @@ int TargetsGame::run()
                 criaObjetos("inimigos");
             }
         }
-        g.calculateAll();
-        g.renderAll();
+        g.calculateAndRender();
     }
 
     return 0;

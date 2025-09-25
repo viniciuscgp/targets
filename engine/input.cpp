@@ -22,7 +22,7 @@ void Input::beginFrame()
     int nkeys = 0;
     const Uint8* state = SDL_GetKeyboardState(&nkeys);
     kb_now.resize(nkeys);
-    std::memcpy(kb_now.data(), state, nkeys);
+    memcpy(kb_now.data(), state, nkeys);
 
     // 3) Gamepads: snapshot de botões e eixos
     for (auto& p : pads) {
