@@ -2,106 +2,41 @@
 #include <cstdlib>
 #include <ctime>
 
-// =========================================
-// Controle de objetos
-// =========================================
+const int TAG_TIRO_NAVE = 1;
+const int TAG_INIM = 2;
+
 void TargetsGame::controlaJogador(Object *jogador)
 {
     const Uint8 *state = SDL_GetKeyboardState(NULL);
     if (state[SDL_SCANCODE_RIGHT])
-        jogador->x += 5;
-    if (state[SDL_SCANCODE_LEFT])
-        jogador->x -= 5;
-}
-
-void TargetsGame::controlaTirosJogador()
-{
-    size_t i = 0;
-    while (i < nave_tiros.size())
     {
-        Object *tiro = nave_tiros[i];
-        tiro->y -= 8;
-
-        if (tiro->y < 0)
-        {
-            g.destroyObject(tiro);
-            nave_tiros.erase(nave_tiros.begin() + i);
-            continue;
-        }
-
-        bool atingiu = false;
-        for (size_t j = 0; j < inimigos.size(); j++)
-        {
-            if (g.checkCollision(*tiro, *inimigos[j]))
-            {
-                inimigoExplosao(*inimigos[j]);
-                g.destroyObject(inimigos[j]);
-                inimigos.erase(inimigos.begin() + j);
-
-                g.destroyObject(tiro);
-                nave_tiros.erase(nave_tiros.begin() + i);
-                atingiu = true;
-                g.playSound("explosao");
-
-                score += 10;
-                hi += 10;
-
-                break;
-            }
-        }
-
-        if (!atingiu)
-            i++;
+        jogador->x += 5;
+        if (jogador->x > jogador->engine->getW())
+            jogador->x = -jogador->w;
+    }
+    if (state[SDL_SCANCODE_LEFT])
+    {
+        jogador->x -= 5;
+        if (jogador->x < -jogador->w)
+            jogador->x = jogador->engine->getW();
     }
 }
+
 
 void TargetsGame::inimigoExplosao(Object o)
 {
     string base = o.images[0] + "explode";
     for (int i = 0; i < EXPL_SPLIT; i++)
     {
-        Object *go = g.createObject(o.x, o.y, o.w / 2, o.h / 2, base + to_string(i), 0, 2);
-        go->image_speed = 0.02;
-        go->angle_speed = g.choose({5, 8, 10});
+        Object *go = g.createObject(o.x, o.y, o.w / 3, o.h / 3, base + to_string(i), 0, 2);
+        go->image_speed = 0.03;
+        go->angle_speed = g.choose({8, 15, 20});
         go->force_x = g.choose({-1, 1, -2, 2, -3, 3});
         go->force_y = g.choose({-1, 1, -2, 2, -3, 3});
         go->onAnimationEnd = [this](Object *self)
         {
-            g.destroyObject(self);
+            g.requestDestroy(self);
         };
-    }
-}
-
-void TargetsGame::controlaInimigos()
-{
-    for (auto *obj : inimigos)
-    {
-        if (obj->x > g.getW())
-        {
-            obj->x = -obj->w;
-            obj->y += 32;
-        }
-        if (obj->y > g.getH())
-        {
-            obj->y = -obj->h;
-        }
-    }
-}
-
-
-void TargetsGame::criaInimigos()
-{
-    for (int i = 0; i < 10; i++)
-    {
-        int tipo = g.choose({T_INIMIGO_1, T_INIMIGO_2, T_INIMIGO_3});
-        int r = std::rand() % TOTAL_ENEMY;
-        std::string key = "alien_" + std::to_string(r + 1);
-
-        Object *obj = g.createObject(i * 80, -300 + (tipo * 70), 64, 64, key, tipo, 1);
-        obj->force_x = g.choose(2, 3, 4, 5);
-        obj->force_y = g.choose(0.8f, 1.2f);
-
-        inimigos.push_back(obj);
     }
 }
 
@@ -127,8 +62,6 @@ void TargetsGame::mudaEstado(int estado_mudar)
             break;
         }
     }
-    cerr << "estado atual:" << STATES[state]  << endl;      
-    cerr << "estado mudar:" << STATES[estado_mudar]  << endl;      
 
     if (estado_mudar == ST_TITLE)
     {
@@ -138,21 +71,21 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
     if (estado_mudar == ST_WAVE)
     {
-        g.destroyObject(title);
-        g.destroyObject(push);
+        g.requestDestroy(title);
+        g.requestDestroy(push);
         criaObjetos("wave");
     }
 
     if (estado_mudar == ST_PLAYING)
     {
-        g.destroyObject(display_wave);
+        g.requestDestroy(display_wave);
         criaObjetos("score");
         criaObjetos("nave");
     }
 
     if (estado_mudar == ST_GAMEOVER)
     {
-        g.destroyObject(nave);
+        g.requestDestroy(nave);
         criaObjetos("gameover");
     }
     state = estado_mudar;
@@ -160,13 +93,13 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
 void TargetsGame::carregaRecursos()
 {
-    g.loadImage("assets/title.png", "title");
-    g.loadImage("assets/game_over.png", "gover");
+    g.loadImage("assets/title.png",          "title");
+    g.loadImage("assets/game_over.png",      "gover");
     g.loadImage("assets/push_space_key.png", "push");
-    g.loadImage("assets/nave_1.png", "nave_1");
-    g.loadImage("assets/nave_2.png", "nave_2");
-    g.loadImage("assets/nave_tiro.png", "tiro");
-    g.loadImage("assets/estrela.png", "estrela");
+    g.loadImage("assets/nave_1.png",         "nave_1");
+    g.loadImage("assets/nave_2.png",         "nave_2");
+    g.loadImage("assets/nave_tiro.png",      "tiro");
+    g.loadImage("assets/estrela.png",        "estrela");
 
     for (int i = 0; i < TOTAL_ENEMY; i++)
     {
@@ -186,14 +119,12 @@ void TargetsGame::criaObjetos(string qual)
     {
         title = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
         g.centerObject(title);
-        g.log("criado: ", qual);
     }
 
     if (qual == "push")
     {
         push = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
         g.centerXObject(push);
-        g.log("criado: ", qual);
     }
 
     if (qual == "wave")
@@ -209,9 +140,8 @@ void TargetsGame::criaObjetos(string qual)
         {
             this->mudaEstado(0);
         };
-        g.log("criado: ", qual);
     }
-    
+
     if (qual == "gameover")
     {
         gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
@@ -222,7 +152,6 @@ void TargetsGame::criaObjetos(string qual)
             this->mudaEstado(ST_TITLE);
         };
         g.centerObject(gover);
-        g.log("criado: ", qual);
     }
 
     if (qual == "nave")
@@ -230,8 +159,7 @@ void TargetsGame::criaObjetos(string qual)
         nave = g.createObject(400, 400, 64, 64, "nave_1", 0, 5);
         nave->images.push_back("nave_2");
         nave->image_speed = 0.2;
-        nave->onAnimationEnd = [](Object *self){self->image_index = 0;};
-        g.log("criado: ", qual);
+        nave->image_cicle = Object::LOOP;
     }
 
     if (qual == "score")
@@ -249,8 +177,44 @@ void TargetsGame::criaObjetos(string qual)
         {
             self->text = "HI: " + g.padzero(score, 4);
         };
+    }
 
-        g.log("criado: ", qual);
+    if (qual == "tironave") 
+    {
+        Object *o   = g.createObject((int)nave->x + nave->w / 2 - 2,
+                                    (int)nave->y,
+                                    12, 16,
+                                    "tiro",
+                                    0, 3);
+        o->tag = TAG_TIRO_NAVE;
+        o->force_y = -8;           
+        o->onAfterCalculate=[](Object *self){if (self->y < -8) self->engine->requestDestroy(self);};                                         
+        o->onCollision=[this](Object *me, Object *other){
+            if (other->tag != TAG_INIM) return;
+            me->requestDestroy();
+            other->requestDestroy();
+            inimigoExplosao(*other);
+            g.playSound("explosao");
+            score += 10;
+            hi    += 10;                                
+        };
+        g.playSound("tiro");        
+    }
+
+    if (qual == "inimigos")
+    {
+        g.log("Criando inimigos...","");
+        for (int i = 0; i < 10; i++)
+        {
+            int tipo = g.choose({T_INIMIGO_1, T_INIMIGO_2, T_INIMIGO_3});
+            int r = std::rand() % TOTAL_ENEMY;
+            std::string key = "alien_" + std::to_string(r + 1);
+
+            Object *o = g.createObject(i * 80, -300 + (tipo * 70), 64, 64, key, tipo, 1);
+            o->setForce(g.choose(2, 3, 4, 5), g.choose(0.8f, 1.2f));
+            o->setWrap(true, true);
+            o->tag = TAG_INIM;
+        }
     }
 }
 
@@ -271,7 +235,6 @@ int TargetsGame::run()
         Object *o = g.createObject(g.RANDOM_X, g.RANDOM_Y, 8, 8, "estrela", 0, 1);
         o->force_y = g.choose({1, 2, 3});
         o->setWrap(true, true);
-        estrelas.push_back(o);
     }
 
     SDL_Event e;
@@ -292,15 +255,9 @@ int TargetsGame::run()
             {
                 if (state == ST_PLAYING)
                 {
-                    if (nave_tiros.size() < MAX_SHIP_FIRE)
+                    if (g.countObjectTags(TAG_TIRO_NAVE) < MAX_SHIP_FIRE)
                     {
-                        Object *go = g.createObject((int)nave->x + nave->w / 2 - 2,
-                                                    (int)nave->y,
-                                                    12, 16,
-                                                    "tiro",
-                                                    0, 3);
-                        nave_tiros.push_back(go);
-                        g.playSound("tiro");
+                        criaObjetos("tironave");
                     }
                 }
                 else
@@ -313,14 +270,13 @@ int TargetsGame::run()
         if (state == ST_PLAYING)
         {
             controlaJogador(nave);
-            controlaTirosJogador();
-            controlaInimigos();
-            if (inimigos.empty())
-                criaInimigos();
+            if (g.countObjectTags(TAG_INIM) == 0)
+            {
+                criaObjetos("inimigos");
+            }
         }
         g.calculateAll();
         g.renderAll();
-        SDL_Delay(16);
     }
 
     return 0;

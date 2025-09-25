@@ -41,7 +41,12 @@ void Object::calculate()
     image_index += image_speed;
     if (((int)image_index) >= images.size())
     {
-        image_index = images.size() - 1;
+        if (image_cicle == ONCE)
+            image_index = images.size() - 1;
+
+        if (image_cicle == LOOP)
+            image_index = 0;
+        
         if (onAnimationEnd)
         {
             onAnimationEnd(this);
@@ -104,4 +109,15 @@ void Object::setWrap(bool h, bool v)
 {
     wraph = h;
     wrapv = v;
+}
+
+void Object::setForce(float fx, float fy)
+{
+    force_x = fx;
+    force_y = fy;
+}
+
+void Object::requestDestroy()
+{
+    engine->requestDestroy(this);
 }

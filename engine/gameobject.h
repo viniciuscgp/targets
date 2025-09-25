@@ -28,21 +28,23 @@ public:
     static constexpr Color COLOR_GRAY = {128, 128, 128, 255};
     static constexpr Color COLOR_TRANSPARENT = {0, 0, 0, 0};
 
+    enum ImageCicle {LOOP, ONCE};
+
     // Posicao e força
     float x, y;     // posicao na tela cano superior esquerdo = 0,0
     float force_x;  // sera adicionado ao x
     float force_y;  // sera adicionado ao y
     float friction; // sera diminuido das forças
-    int w, h;       // tamanho do retangulo de colisao
-    bool wraph;     // auto wrap horizontal
-    bool wrapv;     // auto wrap vertical;
+    int   w, h;     // tamanho do retangulo de colisao
+    bool  wraph;    // auto wrap horizontal
+    bool  wrapv;    // auto wrap vertical;
 
     // Outras informacoes
-    int type;       // pode ser usado pra qualquer coisa
-    int tag;        // pode ser usado pra qualquer coisa
-    int depth;      // ordem que a imagem sera desenhada < mais na frente
-    bool visible;   // mostrar ou não
-    Engine *engine; // 
+    int    type;      // pode ser usado pra qualquer coisa
+    int    tag;       // pode ser usado pra qualquer coisa
+    int    depth;     // ordem que a imagem sera desenhada < mais na frente
+    bool   visible;   // mostrar ou não
+    Engine *engine;   // 
 
     // Rotação
     float angle;       // angulo que a imagem será mostrad
@@ -52,10 +54,12 @@ public:
     vector<string> images; // referencia de imagens assossiadas a esse objeto
     float image_index;     // imagem mostrada no momento de 0 a images.size()
     float image_speed;     // velocidade de transição para a proxima imagem
+    ImageCicle image_cicle; 
 
+    // Se preenchido mostra o texto automaticamente
     string font_name;
-    int font_size;
-    Color font_color;
+    Color  font_color;
+    int    font_size;
     string text;
 
     vector<int> alarms;
@@ -68,6 +72,7 @@ public:
     function<void(Object *)> onBeforeCalculate;
     function<void(Object *)> onAfterCalculate;
     function<void(Object *, int index)> onAlarmFinished;
+    function<void(Object*, Object*)> onCollision;
 
     ~Object();
 
@@ -75,18 +80,19 @@ public:
     {
         visible = true;
 
-        force_x = 0;
-        force_y = 0;
+        force_x  = 0;
+        force_y  = 0;
         friction = 0;
-        wraph = false;
-        wrapv = false;
+        wraph    = false;
+        wrapv    = false;
 
-        angle = 0;
+        angle       = 0;
         angle_speed = 0;
 
         image_index = 0;
         image_speed = 0;
-        font_color = {255, 255, 255, 255};
+        image_cicle = LOOP;
+        font_color  = {255, 255, 255, 255};
     }
 
     Object(int x, int y, int w, int h, string image, int type = 0, int depth = 0) : Object(x, y, w, h, type, depth)
@@ -98,5 +104,8 @@ public:
     void calculate();
     void setFont(string name, int size, Color color);
     void setWrap(bool h, bool v);
+    void setForce(float fx, float fy);
+    void requestDestroy();
     string getCurrentImageRef();
+
 };

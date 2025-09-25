@@ -16,10 +16,6 @@ public:
     Object* display_hi = nullptr;
     Object* display_wave = nullptr;
 
-    vector<Object*> nave_tiros;
-    vector<Object*> inimigos;
-    vector<Object*> estrelas;
-
     int score  = 0;
     int hi     = 0;
     int lifes  = 2;
@@ -44,10 +40,7 @@ public:
     const int T_INIMIGO_3 = 3;
 
     void controlaJogador(Object* jogador);
-    void controlaTirosJogador();
     void inimigoExplosao(Object o);
-    void controlaInimigos();
-    void criaInimigos();
     void mudaEstado(int estado);
     void carregaRecursos();
     void criaObjetos(string qual);
