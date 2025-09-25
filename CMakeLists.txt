@@ -11,6 +11,7 @@ add_executable(targets
     game.cpp
     engine/engine.cpp 
     engine/gameobject.cpp
+    engine/input.cpp
 )
 
 target_include_directories(targets PRIVATE

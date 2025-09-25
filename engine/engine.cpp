@@ -232,7 +232,7 @@ Object *Engine::createObject(int x, int y, int w, int h, std::string imageRef, i
         if (w == 0) w = texW;
         if (h == 0) h = texH;
     }
-    
+
     if (x == this->RANDOM_X) x = rand() % getW();
     if (y == this->RANDOM_Y) y = rand() % getH();
 
@@ -300,6 +300,7 @@ void Engine::drawText(const std::string &text, int x, int y,
 
 void Engine::calculateAll()
 {
+    inputBeginFrame();
     for (Object *obj : ordered_objects) {
         obj->calculate();
     }

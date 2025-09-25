@@ -15,6 +15,7 @@
 #include <random>
 #include "resources.h"
 #include "gameobject.h"
+#include "input.h"
 
 struct FontKey {
     std::string name;
@@ -31,6 +32,7 @@ class Engine {
 private:
     static constexpr const char *TEXTURE_PREFIX = "TEX";
     static constexpr const char *SOUND_PREFIX   = "SND";
+    Input inputSys;
 
     int w, h;
     SDL_Window   *window   = nullptr;
@@ -50,6 +52,21 @@ private:
 public:
     static constexpr const int RANDOM_X = 99999999;
     static constexpr const int RANDOM_Y = 99999999;
+
+// --- Wrappers de input (o jogo só chama Engine) ---
+    inline void inputBeginFrame()                 { inputSys.beginFrame(); }
+    inline bool quitRequested()             const { return inputSys.quitRequested(); }
+
+    inline bool keyHeld(SDL_Scancode sc)    const { return inputSys.keyHeld(sc); }
+    inline bool keyPressed(SDL_Scancode sc) const { return inputSys.keyPressed(sc); }
+    inline bool keyReleased(SDL_Scancode sc)const { return inputSys.keyReleased(sc); }
+
+    inline bool  openGamepad(int index=0)         { return inputSys.openGamepad(index); }
+    inline void  closeGamepads()                  { inputSys.closeGamepads(); }
+    inline bool  padHeld(SDL_GameControllerButton btn, int i=0)    const { return inputSys.padHeld(btn,i); }
+    inline bool  padPressed(SDL_GameControllerButton btn, int i=0) const { return inputSys.padPressed(btn,i); }
+    inline bool  padReleased(SDL_GameControllerButton btn, int i=0)const { return inputSys.padReleased(btn,i); }
+    inline Sint16 padAxis(SDL_GameControllerAxis axis, int i=0)    const { return inputSys.padAxis(axis,i); }
 
     // Engine.h (em public)
     void requestDestroy(Object* obj);     // agenda destruição
