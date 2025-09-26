@@ -380,6 +380,13 @@ static inline bool Engine_rectOverlap(const Object* a, const Object* b) {
            (a->y + a->h > b->y);
 }
 
+// regra de grupo: 0 colide com todos; !=0 só colide com iguais
+static inline bool Engine_groupMatch(const Object* a, const Object* b) {
+    if (a->collision_group == -1 || b->collision_group == -1) return false;
+    if (a->collision_group == 0  || b->collision_group == 0)  return true;
+    return a->collision_group == b->collision_group;
+}
+
 static inline void Engine_putInCells(
     unordered_map<Engine_CellKey, vector<Object*>, Engine_CellKeyHash>& grid,
     Object* o)
@@ -415,10 +422,16 @@ void Engine::processCollisions()
             Object* a = v[i];
             for (size_t j = i + 1; j < n; ++j) {
                 Object* b = v[j];
-                if (Engine_rectOverlap(a, b)) {
-                    if (a->onCollision) a->onCollision(a, b);
-                    if (b->onCollision) b->onCollision(b, a);
-                }
+
+                // grupo primeiro
+                if (!Engine_groupMatch(a, b)) continue;
+
+                // AABB
+                if (!Engine_rectOverlap(a, b)) continue;
+
+                // callback
+                if (a->onCollision) a->onCollision(a, b);
+                if (b->onCollision) b->onCollision(b, a);
             }
         }
     }
@@ -428,7 +441,7 @@ int Engine::countObjectTypes(int type)
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o->type == type) i++;
+        if (o && o->type == type) i++;
     }
     return i;
 }   
@@ -437,15 +450,13 @@ int Engine::countObjectTags(int tag)
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o->tag == tag) i++;
+        if (o && o->tag == tag) i++;
     }
     return i;
 }
 
-
 void Engine::requestDestroy(Object* obj) {
     if (!obj) return;
-
     if (find(destroy_queue.begin(), destroy_queue.end(), obj) == destroy_queue.end()) {
         destroy_queue.push_back(obj);
     }
@@ -463,4 +474,3 @@ void Engine::flushDestroyQueue() {
     }
     destroy_queue.clear();
 }
-

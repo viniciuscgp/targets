@@ -30,8 +30,8 @@ void TargetsGame::inimigoExplosao(Object o)
         Object *go = g.createObject(o.x, o.y, o.w / 3, o.h / 3, base + to_string(i), 0, 2);
         go->image_speed = 0.03;
         go->angle_speed = g.choose({8, 15, 20});
-        go->force_x = g.choose({-1, 1, -2, 2, -3, 3});
-        go->force_y = g.choose({-1, 1, -2, 2, -3, 3});
+        go->x_force = g.choose({-1, 1, -2, 2, -3, 3});
+        go->y_force = g.choose({-1, 1, -2, 2, -3, 3});
         go->onAnimationEnd = [this](Object *self)
         {
             g.requestDestroy(self);
@@ -110,20 +110,23 @@ void TargetsGame::carregaRecursos()
 
     g.loadSound("assets/nave_tiro.wav", "tiro");
     g.loadSound("assets/inimigo_explode.wav", "explosao");
+    g.loadSound("assets/impact1.wav", "impact1");
 }
 
-void TargetsGame::criaObjetos(string qual)
+void TargetsGame::criaObjetos(string_view qual)
 {
     if (qual == "title")
     {
         title = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "title", 0, 0);
         g.centerObject(title);
+        return;
     }
 
     if (qual == "push")
     {
         push = g.createObject(0, g.getH() - 180, 0, 0, "push", 0, 0);
         g.centerXObject(push);
+        return;
     }
 
     if (qual == "wave")
@@ -139,6 +142,7 @@ void TargetsGame::criaObjetos(string qual)
         {
             this->mudaEstado(0);
         };
+        return;
     }
 
     if (qual == "gameover")
@@ -151,14 +155,16 @@ void TargetsGame::criaObjetos(string qual)
             this->mudaEstado(ST_TITLE);
         };
         g.centerObject(gover);
+        return;
     }
 
     if (qual == "nave")
     {
-        nave = g.createObject(400, 400, 64, 64, "nave_1", 0, 5);
+        nave = g.createObject(400, 450, 64, 64, "nave_1", 0, 5);
         nave->images.push_back("nave_2");
         nave->image_speed = 0.2;
-        nave->image_cicle = Object::LOOP;
+        nave->image_cycle = Object::LOOP;
+        return;
     }
 
     if (qual == "score")
@@ -174,8 +180,9 @@ void TargetsGame::criaObjetos(string qual)
         display_hi->setFont("Roboto_Condensed-Black.ttf", 24, Object::COLOR_YELLOW);
         display_hi->onBeforeDraw = [this](Object *self)
         {
-            self->text = "HI: " + g.padzero(score, 4);
+            self->text = "HI: " + g.padzero(hi, 4);
         };
+        return;
     }
 
     if (qual == "tironave") 
@@ -185,19 +192,30 @@ void TargetsGame::criaObjetos(string qual)
                                     12, 16,
                                     "tiro",
                                     0, 3);
-        o->tag = TAG_TIRO_NAVE;
-        o->force_y = -8;           
-        o->onAfterCalculate=[](Object *self){if (self->y < -8) self->engine->requestDestroy(self);};                                         
+        o->tag     = TAG_TIRO_NAVE;
+        o->y_force = -8;   
+        o->atack   = 5;        
+        o->onAfterCalculate=[](Object *self){if (self->y < -8) self->requestDestroy();};                                         
         o->onCollision=[this](Object *me, Object *other){
             if (other->tag != TAG_INIM) return;
-            me->requestDestroy();
-            other->requestDestroy();
-            inimigoExplosao(*other);
-            g.playSound("explosao");
-            score += 10;
-            hi    += 10;                                
+            me->applyImpact(other); 
+            me->destroyIfLow();
+            other->applyImpact(me);
+
+            if (other->destroyIfLow())
+            {
+                inimigoExplosao(*other);
+                g.playSound("explosao");
+                score += 10;
+                hi    += 10;                                
+            } else {
+                other->angle = g.choose(30, 60, 90, 120, 150, 180, 220, 250, 290);
+                other->y_force = -g.choose(3, 6, 8, 10);
+                g.playSound("impact1");
+            }
         };
         g.playSound("tiro");        
+        return;
     }
 
     if (qual == "inimigos")
@@ -207,22 +225,28 @@ void TargetsGame::criaObjetos(string qual)
         {
             int tipo = g.choose({T_INIMIGO_1, T_INIMIGO_2, T_INIMIGO_3});
             int r = rand() % TOTAL_ENEMY;
-            string key = "alien_" + to_string(r + 1);
+            string image = "alien_" + to_string(r + 1);
 
-            Object *o = g.createObject(i * 80, -300 + (tipo * 70), 64, 64, key, tipo, 1);
-            o->setForce(g.choose(2, 3, 4, 5), g.choose(0.8f, 1.2f));
+            Object *o = g.createObject(i * 80, -300 + (tipo * 70), 64, 64, image, tipo, 1);
+
+            o->setForce(g.choose(2, 3, 4, 5), 0);
+            o->gravity = g.choose(0.8f, 1.2f);
+            o->friction = 0.1;
             o->setWrap(true, true);
             o->tag = TAG_INIM;
         }
+        return;
     }
     if (qual == "estrelas") 
     {
         for (int i = 0; i < TOTAL_STARS; i++)
         {
             Object *o = g.createObject(g.RANDOM_X, g.RANDOM_Y, 8, 8, "estrela", 0, 1);
-            o->force_y = g.choose({1, 2, 3});
+            o->y_force = g.choose({1, 2, 3});
+            o->collision_group = -1;
             o->setWrap(true, true);
         }
+        return;
     }
 }
 

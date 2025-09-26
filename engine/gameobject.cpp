@@ -11,15 +11,28 @@ inline float applyFriction(float f, float fric)
     return std::copysign(mag, f);
 }
 
+inline float applyGravity(float f, float gravity)
+{
+    return f + gravity;
+}
+
+
 void Object::calculate()
 {
     if (onBeforeCalculate)
     {
         onBeforeCalculate(this);
     }
+    x_prev = x;
+    y_prev = y;
 
-    y += force_y;
-    x += force_x;
+    y += y_force;
+    x += x_force;
+
+    x_force = applyFriction(x_force, friction);
+    y_force = applyFriction(y_force, friction);
+
+    y = applyGravity(y, gravity);
 
     // wrap horizontal
     if (wraph)
@@ -34,17 +47,14 @@ void Object::calculate()
         if (y < -h) y = engine->getH();
     }
 
-    force_x = applyFriction(force_x, friction);
-    force_y = applyFriction(force_y, friction);
-
     // Mudança de imagem
     image_index += image_speed;
     if (((int)image_index) >= images.size())
     {
-        if (image_cicle == ONCE)
+        if (image_cycle == ONCE)
             image_index = images.size() - 1;
 
-        if (image_cicle == LOOP)
+        if (image_cycle == LOOP)
             image_index = 0;
         
         if (onAnimationEnd)
@@ -75,6 +85,22 @@ void Object::calculate()
     {
         onAfterCalculate(this);
     }
+}
+
+void Object::applyImpact(Object *other)
+{
+    // energy = 100 shield = 50 atack = 60
+    shield -= other->atack;
+    if (shield < 0) energy -= (shield * -1);
+}
+
+bool Object::destroyIfLow()
+{
+    if (energy <= 0) {
+        requestDestroy();
+        return true;
+    }
+    return false;
 }
 
 Object::~Object()
@@ -113,8 +139,8 @@ void Object::setWrap(bool h, bool v)
 
 void Object::setForce(float fx, float fy)
 {
-    force_x = fx;
-    force_y = fy;
+    x_force = fx;
+    y_force = fy;
 }
 
 void Object::requestDestroy()

@@ -43,7 +43,7 @@ public:
     void inimigoExplosao(Object o);
     void mudaEstado(int estado);
     void carregaRecursos();
-    void criaObjetos(string qual);
+    void criaObjetos(string_view qual);
 
     TargetsGame() = default;
     int run();

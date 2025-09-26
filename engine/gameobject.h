@@ -28,13 +28,21 @@ public:
     static constexpr Color COLOR_GRAY = {128, 128, 128, 255};
     static constexpr Color COLOR_TRANSPARENT = {0, 0, 0, 0};
 
-    enum ImageCicle {LOOP, ONCE};
+    enum ImageCycle {LOOP, ONCE};
 
     // Posicao e força
     float x, y;     // posicao na tela cano superior esquerdo = 0,0
-    float force_x;  // sera adicionado ao x
-    float force_y;  // sera adicionado ao y
+    float x_prev;   // x anterior
+    float y_prev;   // y anterior
+    float x_force;  // sera adicionado ao x
+    float y_force;  // sera adicionado ao y
     float friction; // sera diminuido das forças
+    float gravity;  // força gravitacional
+
+    float energy;   // energia desse objeto
+    float shield;   // escudo generico
+    float atack;    // ao colidir vai remover de shield e depois de energy
+
     int   w, h;     // tamanho do retangulo de colisao
     bool  wraph;    // auto wrap horizontal
     bool  wrapv;    // auto wrap vertical;
@@ -43,18 +51,20 @@ public:
     int    type;      // pode ser usado pra qualquer coisa
     int    tag;       // pode ser usado pra qualquer coisa
     int    depth;     // ordem que a imagem sera desenhada < mais na frente
+    int    collision_group;
+
     bool   visible;   // mostrar ou não
-    Engine *engine;   // 
+    Engine *engine;   // apontador pra engine
 
     // Rotação
     float angle;       // angulo que a imagem será mostrad
     float angle_speed; // soma ao angulo em cada step
 
     // Refencias de imagem
-    vector<string> images; // referencia de imagens assossiadas a esse objeto
-    float image_index;     // imagem mostrada no momento de 0 a images.size()
-    float image_speed;     // velocidade de transição para a proxima imagem
-    ImageCicle image_cicle; 
+    vector<string> images;  // referencia de imagens assossiadas a esse objeto
+    float image_index;      // imagem mostrada no momento de 0 a images.size()
+    float image_speed;      // velocidade de transição para a proxima imagem
+    ImageCycle image_cycle; // ao terminar o ciclo de imagens o que fazer
 
     // Se preenchido mostra o texto automaticamente
     string font_name;
@@ -80,9 +90,18 @@ public:
     {
         visible = true;
 
-        force_x  = 0;
-        force_y  = 0;
+        x_force  = 0;
+        y_force  = 0;
+        x_prev   = 0;
+        y_prev   = 0;
         friction = 0;
+        gravity  = 0;
+
+        energy   = 10;
+        shield   = 0;
+        atack    = 10;
+        collision_group = 0;
+        
         wraph    = false;
         wrapv    = false;
 
@@ -91,7 +110,7 @@ public:
 
         image_index = 0;
         image_speed = 0;
-        image_cicle = LOOP;
+        image_cycle = LOOP;
         font_color  = {255, 255, 255, 255};
     }
 
@@ -106,6 +125,8 @@ public:
     void setWrap(bool h, bool v);
     void setForce(float fx, float fy);
     void requestDestroy();
+    void applyImpact(Object *other);
+    bool destroyIfLow();
     string getCurrentImageRef();
 
 };
