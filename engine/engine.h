@@ -117,7 +117,9 @@ public:
     void loadSound(string path, string tag);
     void playSound(string soundRef);
 
-    Object* createObject(int x, int y, int w, int h, string texture, int type = 0, int depth = 0);
+    Object *createObject(int x, int y, int w, int h, string texture, int type = 0, int depth = 0);
+    Object *createObject(int x, int y);
+    Object *createObject(int x, int y, string imageRef);
 
     void centerXObject(Object *go);
     void centerYObject(Object *go);

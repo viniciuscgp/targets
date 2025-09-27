@@ -21,6 +21,7 @@ public:
     int lifes  = 2;
     int state  = 0;
     int wave   = 1;
+    int kills  = 0;
 
     const int MAX_SHIP_FIRE = 4;
     const int TOTAL_STARS   = 30;
@@ -34,12 +35,6 @@ public:
     static const int ST_GAMEOVER = 4;
     static constexpr const char *STATES[5]  = {"INDEFINIDO", "TITLE", "WAVE", "PLAYING", "GAMEOVER"};
 
-    // Tipos
-    const int T_INIMIGO_1 = 1;
-    const int T_INIMIGO_2 = 2;
-    const int T_INIMIGO_3 = 3;
-
-    void controlaJogador(Object* jogador);
     void inimigoExplosao(Object o);
     void mudaEstado(int estado);
     void carregaRecursos();

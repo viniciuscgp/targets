@@ -98,7 +98,7 @@ void Engine::drawObject(Object *go)
     // imagem
     const string img = go->getCurrentImageRef();
     if (!img.empty()) {
-        drawImage(img, (int)go->x, (int)go->y, go->w, go->h, go->angle);
+        drawImage(img, (int)go->x, (int)go->y, go->getW(), go->getH(), go->angle);
     }
 
     // texto acima
@@ -112,7 +112,7 @@ void Engine::drawObject(Object *go)
             TTF_SizeUTF8(font, go->text.c_str(), &tw, &th);
 
             const int padding = 2;
-            int cx = (int)go->x + go->w / 2;
+            int cx = (int)go->x + go->getW() / 2;
             int ty = (int)go->y - th - padding;
 
             drawText(go->text, cx, ty, go->font_name, fsize, toSDL(go->font_color), true);
@@ -246,8 +246,18 @@ Object *Engine::createObject(int x, int y, int w, int h, string imageRef, int ty
     return ptr;
 }
 
-void Engine::centerXObject(Object *go) { go->x = (w - go->w) / 2; }
-void Engine::centerYObject(Object *go) { go->y = (h - go->h) / 2; }
+Object *Engine::createObject(int x, int y, string imageRef)
+{
+    return createObject(x, y, 0, 0, imageRef, 0, 0);
+}
+
+Object *Engine::createObject(int x, int y)
+{
+    return createObject(x, y, 0, 0, "", 0, 0);
+}
+
+void Engine::centerXObject(Object *go) { go->x = (w - go->getW()) / 2; }
+void Engine::centerYObject(Object *go) { go->y = (h - go->getH()) / 2; }
 void Engine::centerObject (Object *go) { centerXObject(go); centerYObject(go); }
 
 void Engine::destroyObject(Object *obj)
@@ -345,10 +355,10 @@ int Engine::getH() { return h; }
 
 bool Engine::checkCollision(const Object &a, const Object &b)
 {
-    return (a.x < b.x + b.w) &&
-           (a.x + a.w > b.x) &&
-           (a.y < b.y + b.h) &&
-           (a.y + a.h > b.y);
+    return (a.x < b.x + b.getW()) &&
+           (a.x + a.getW() > b.x) &&
+           (a.y < b.y + b.getH()) &&
+           (a.y + a.getH() > b.y);
 }
 
 string Engine::padzero(int n, int width)
@@ -374,10 +384,10 @@ struct Engine_CellKeyHash {
 static constexpr int ENGINE_COLL_CELL = 64;
 
 static inline bool Engine_rectOverlap(const Object* a, const Object* b) {
-    return (a->x < b->x + b->w) &&
-           (a->x + a->w > b->x) &&
-           (a->y < b->y + b->h) &&
-           (a->y + a->h > b->y);
+    return (a->x < b->x + b->getW()) &&
+           (a->x + a->getW() > b->x) &&
+           (a->y < b->y + b->getH()) &&
+           (a->y + a->getH() > b->y);
 }
 
 // regra de grupo: 0 colide com todos; !=0 só colide com iguais
@@ -393,8 +403,8 @@ static inline void Engine_putInCells(
 {
     int x0 = int(floor(o->x)) / ENGINE_COLL_CELL;
     int y0 = int(floor(o->y)) / ENGINE_COLL_CELL;
-    int x1 = int(floor(o->x + o->w - 1)) / ENGINE_COLL_CELL;
-    int y1 = int(floor(o->y + o->h - 1)) / ENGINE_COLL_CELL;
+    int x1 = int(floor(o->x + o->getW() - 1)) / ENGINE_COLL_CELL;
+    int y1 = int(floor(o->y + o->getH() - 1)) / ENGINE_COLL_CELL;
 
     for (int gy = y0; gy <= y1; ++gy) {
         for (int gx = x0; gx <= x1; ++gx) {
@@ -441,7 +451,7 @@ int Engine::countObjectTypes(int type)
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o && o->type == type) i++;
+        if (o && o->type == type && !o->defunct) i++;
     }
     return i;
 }   
@@ -450,7 +460,7 @@ int Engine::countObjectTags(int tag)
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o && o->tag == tag) i++;
+        if (o && o->tag == tag && !o->defunct) i++;
     }
     return i;
 }
@@ -458,6 +468,7 @@ int Engine::countObjectTags(int tag)
 void Engine::requestDestroy(Object* obj) {
     if (!obj) return;
     if (find(destroy_queue.begin(), destroy_queue.end(), obj) == destroy_queue.end()) {
+        obj->defunct = true;
         destroy_queue.push_back(obj);
     }
 }
