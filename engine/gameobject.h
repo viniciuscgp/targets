@@ -163,6 +163,7 @@ public:
     float getFinalDirection() const;
     string getCurrentImageRef();
     void setAlarm(int frames);
+    Color withAlpha(const Color& base, uint8_t alpha);
 
     // getters
     int getW() const;

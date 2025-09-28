@@ -1,3 +1,4 @@
+
 #include "game.h"
 #include <cstdlib>
 #include <ctime>
@@ -9,10 +10,51 @@ const int TAG_INIMIGO_1 = 1;
 const int TAG_INIMIGO_2 = 2;
 const int TAG_INIMIGO_3 = 3;
 
-const int   WAVE_ENERGY[] = {   5,    5,    5,   10,   15,   15,  15,   25,   25,   30,   30,   30,   30,   30,   30,   30,   30,   30,   30,   30,    30};
-const int   WAVE_ENEMY[]  = {   3,    3,    4,    4,    5,    8,   9,    9,   10,   10,   10,   11,   11,   12,   12,   12,   13,   14,   15,   16,    17};
-const float WAVE_SCALE[]  = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-const int   WAVA_KILLS[]  = {  10,   15,   30,   30,   30,   30,   30,   40,   40,   40,   40,   40,   40,   40,   40,   40,   40,   50,   50,   50,   50};
+// 35                               1     2     3    4     5      6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21     22     23     24     25     26     27     28     29     30     31     32      33    34     35
+const float INIM_FORCEX[]        = {0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0f, 4.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 6.0f, 6.0f, 6.0f, 6.0f, 12.0f, 12.0f, 12.0f, 12.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f, 11.0f};
+const float INIM_FORCEY[]        = {3.0f, 3.0f, 3.0f, 3.0f, 1.0f, 1.0f, 3.0f, 3.0f, 4.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 2.0f, 2.0f, 2.0f, 2.0f, 3.0f,  3.0f,  3.0f,  3.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f,  4.0f};
+// 21
+const int   WAVE_ENEMY_NUMBER[]  = {   6,    6,    7,    7,    7,    8,   9,    9,   10,   10,   10,   11,   11,   12,   12,   12,   13,   14,   15,   16,    17};
+const int   WAVE_ENERGY[]        = {   5,    5,    5,   10,   15,   15,  15,   25,   25,   30,   30,   30,   30,   30,   30,   30,   30,   30,   30,   30,    30};
+const float WAVE_SCALE[]         = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+const int   WAVA_KILLS[]         = {  10,   15,   30,   30,   30,   30,   30,   40,   40,   40,   40,   40,   40,   40,   40,   40,   40,   50,   50,   50,   50};
+
+const vector<vector<int>> WAVE_ENEMY_TYPE = {
+    {1, 2},
+    {3, 4},
+    {4, 4, 5},
+    {3, 4, 5},
+    {3, 4, 6},
+    {4, 4, 6},
+    {6, 7, 8},
+    {7, 8, 9},
+    {9,  10, 11},
+    {11, 12, 13},
+    {12, 13, 14},
+    {14, 15, 16},
+    {17, 18, 19},
+    {20, 21, 22},
+    {23, 24, 25},
+    {26, 26, 27},
+    {28, 29, 30},
+    {31, 32, 33},
+    {33, 33, 34},
+    {34, 35, 35},
+    {34, 35, 35}
+};
+
+const int MAX_SHIP_FIRE = 4;
+const int TOTAL_STARS   = 30;
+const int TOTAL_ENEMY   = 35;
+const int EXPL_SPLIT    = 6;
+
+// Estados
+static const int ST_TITLE    = 1;
+static const int ST_WAVE     = 2;
+static const int ST_PLAYING  = 3;
+static const int ST_GAMEOVER = 4;
+
+static constexpr const char *STATES[5]  = {"INDEFINIDO", "TITLE", "WAVE", "PLAYING", "GAMEOVER"};
 
 void TargetsGame::inimigoExplosao(Object o)
 {
@@ -70,7 +112,7 @@ void TargetsGame::mudaEstado(int estado_mudar)
     if (estado_mudar == ST_PLAYING)
     {
         g.requestDestroy(display_wave);
-        criaObjetos("score");
+        criaObjetos("hud");
         criaObjetos("nave");
     }
 
@@ -84,18 +126,18 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
 void TargetsGame::carregaRecursos()
 {
-    g.loadImage("assets/title.png", "title");
-    g.loadImage("assets/game_over.png", "gover");
+    g.loadImage("assets/title.png",          "title");
+    g.loadImage("assets/game_over.png",      "gover");
     g.loadImage("assets/push_space_key.png", "push");
-    g.loadImage("assets/nave_1.png", "nave_1");
-    g.loadImage("assets/nave_2.png", "nave_2");
-    g.loadImage("assets/nave_tiro.png", "tiro");
-    g.loadImage("assets/estrela.png", "estrela");
+    g.loadImage("assets/nave_1.png",         "nave_1");
+    g.loadImage("assets/nave_2.png",         "nave_2");
+    g.loadImage("assets/nave_tiro.png",      "tiro");
+    g.loadImage("assets/estrela.png",        "estrela");
 
     for (int i = 0; i < TOTAL_ENEMY; i++)
     {
         string file = "assets/alien_" + to_string(i + 1) + ".png";
-        string key = "alien_" + to_string(i + 1);
+        string key  = "alien_" + to_string(i + 1);
         g.loadImage(file, key);
         g.splitImage(key, EXPL_SPLIT, key + "explode");
     }
@@ -196,18 +238,18 @@ void TargetsGame::criaObjetos(string_view qual)
         return;
     }
 
-    if (qual == "score")
+    if (qual == "hud")
     {
-        display_score = g.createObject(40, 60, 64, 64, "", 0, 0);
-        display_score->setFont("Roboto_Condensed-Black.ttf", 24, Object::COLOR_YELLOW);
-        display_score->onBeforeDraw = [this](Object *self)
+        hud_score = g.createObject(40, 60, 64, 64, "", 0, 0);
+        hud_score->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
+        hud_score->onBeforeDraw = [this](Object *self)
         {
             self->text = "SCORE: " + g.padzero(score, 4);
         };
 
-        display_hi = g.createObject(g.getW() - 40 - 60, 60, 64, 64, "", 0, 0);
-        display_hi->setFont("Roboto_Condensed-Black.ttf", 24, Object::COLOR_YELLOW);
-        display_hi->onBeforeDraw = [this](Object *self)
+        hud_hi = g.createObject(g.getW() - 40 - 60, 60, 64, 64, "", 0, 0);
+        hud_hi->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
+        hud_hi->onBeforeDraw = [this](Object *self)
         {
             self->text = "HI: " + g.padzero(hi, 4);
         };
@@ -244,8 +286,8 @@ void TargetsGame::criaObjetos(string_view qual)
                 {
                     wave++;
                     nave->requestDestroy();
-                    display_score->requestDestroy();
-                    display_hi->requestDestroy();
+                    hud_score->requestDestroy();
+                    hud_hi->requestDestroy();
                     mudaEstado(ST_WAVE);
                 }
             }
@@ -264,16 +306,20 @@ void TargetsGame::criaObjetos(string_view qual)
 
     if (qual == "inimigos")
     {
-        for (int i = 0; i < WAVE_ENEMY[wave]; i++)
+        int in;
+        for (int i = 0; i < WAVE_ENEMY_NUMBER[wave]; i++)
         {
-            int tag = g.choose({TAG_INIMIGO_1, TAG_INIMIGO_2, TAG_INIMIGO_3});
+            in = g.choose(WAVE_ENEMY_TYPE[wave - 1]) - 1;                       // escolhe o tipo de inimigo
+            int tag = g.choose({TAG_INIMIGO_1, TAG_INIMIGO_2, TAG_INIMIGO_3});  // 
             int r = (rand() % (i + 1)) % TOTAL_ENEMY;
             string image = "alien_" + to_string(r + 1);
 
-            Object *o = g.createObject(i * 80, -300 + (tag * 70), 64, 64, image, TYPE_INIM, 1);
+            Object *o = g.createObject(rand() % (g.getW() - 48), -(tag * 64), 48, 48, image);
 
-            o->setForce(g.choose(2, 3, 4, 5), g.choose(2.2f, 2.8f));
-            o->setScale(g.choose(WAVE_SCALE[wave], WAVE_SCALE[wave], 0.5));
+            o->type = TYPE_INIM;
+            o->depth = 1;
+            o->setForce(g.choose(INIM_FORCEX[in]), g.choose(INIM_FORCEY[in], INIM_FORCEY[in], INIM_FORCEY[in] + 1, INIM_FORCEY[in] + 2)); // aqui como o inimigo se comporta em X e Y (forcas)
+            o->setScale(g.choose(WAVE_SCALE[wave], WAVE_SCALE[wave], 0.8f));   // a escala
             o->setWrap(true, true);
             o->energy = WAVE_ENERGY[wave];
         }

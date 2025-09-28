@@ -223,7 +223,15 @@ float Object::getFinalDirection() const
     return deg;
 }
 
+Color Object::withAlpha(const Color& base, uint8_t alpha) 
+{
+    return Color{ base.r, base.g, base.b, alpha };
+}
+
+
 // getters
 int Object::getW() const {return w * x_scale;}
 int Object::getH() const {return h * y_scale;}
+
+
 
