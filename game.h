@@ -8,13 +8,16 @@ class TargetsGame {
 public:
     Engine g;
 
-    Object* title = nullptr;
-    Object* push  = nullptr;
-    Object* nave  = nullptr;
-    Object* gover = nullptr;
-    Object* hud_score = nullptr;
-    Object* hud_hi    = nullptr;
-    Object* display_wave = nullptr;
+    Object *title        = nullptr;
+    Object *push         = nullptr;
+    Object *nave         = nullptr;
+    Object *gover        = nullptr;
+    Object *hud_score    = nullptr;
+    Object *hud_hi       = nullptr;
+    Object *hud_wave     = nullptr;
+    Object *hud_energy   = nullptr;
+
+    Object *display_wave = nullptr;
 
     int score  = 0;
     int hi     = 0;
@@ -22,6 +25,7 @@ public:
     int state  = 0;
     int wave   = 1;
     int kills  = 0;
+    int energy = 0;
 
     void inimigoExplosao(Object o);
     void mudaEstado(int estado);

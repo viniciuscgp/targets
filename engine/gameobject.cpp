@@ -82,10 +82,10 @@ void Object::calculate()
     // Alarmes
     for (int i = alarms.size() - 1; i >= 0; --i)
     {
-        if (--alarms[i] <= 0)
+        if (--alarms[i].frames <= 0)
         {
             if (onAlarmFinished)
-                onAlarmFinished(this, i);
+                onAlarmFinished(this, alarms[i].id); 
             alarms.erase(alarms.begin() + i);
         }
     }
@@ -128,9 +128,9 @@ string Object::getCurrentImageRef()
     return images[(int)image_index];
 }
 
-void Object::setAlarm(int frames)
+void Object::setAlarm(int frames, int id)
 {
-    alarms.push_back(frames);
+    alarms.push_back({frames, id});
 }
 
 void Object::setFont(string name, int size, Color color)

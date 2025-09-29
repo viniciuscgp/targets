@@ -1,7 +1,9 @@
 #include "engine.h"
-#include <cmath> // floor
+#include <cmath>
 
 // Converter Color -> SDL_Color
+static constexpr int ENGINE_COLL_CELL = 64;
+
 static inline SDL_Color toSDL(const Color &c) {
     return SDL_Color{ c.r, c.g, c.b, c.a };
 }
@@ -118,6 +120,8 @@ void Engine::drawObject(Object *go)
             drawText(go->text, cx, ty, go->font_name, fsize, toSDL(go->font_color), true);
         }
     }
+    if (go->onAfterDraw) go->onAfterDraw(go);
+
 }
 
 void Engine::loadImage(string path, string tag)
@@ -256,9 +260,20 @@ Object *Engine::createObject(int x, int y)
     return createObject(x, y, 0, 0, "", 0, 0);
 }
 
-void Engine::centerXObject(Object *go) { go->x = (w - go->getW()) / 2; }
-void Engine::centerYObject(Object *go) { go->y = (h - go->getH()) / 2; }
-void Engine::centerObject (Object *go) { centerXObject(go); centerYObject(go); }
+void Engine::centerXObject(Object *go)
+{ 
+    go->x = (w - go->getW()) / 2; 
+}
+
+void Engine::centerYObject(Object *go) 
+{ 
+    go->y = (h - go->getH()) / 2; 
+}
+
+void Engine::centerObject (Object *go) 
+{ 
+    centerXObject(go); centerYObject(go); 
+}
 
 void Engine::destroyObject(Object *obj)
 {
@@ -283,9 +298,7 @@ TTF_Font *Engine::getFont(const string &name, int size)
     return f;
 }
 
-void Engine::drawText(const string &text, int x, int y,
-                      const string &fontName, int fontSize,
-                      SDL_Color color, bool centered)
+void Engine::drawText(const string &text, int x, int y, const string &fontName, int fontSize, SDL_Color color, bool centered)
 {
     if (text.empty()) return;
 
@@ -350,8 +363,15 @@ void Engine::clear()
     objects.clear();
 }
 
-int Engine::getW() { return w; }
-int Engine::getH() { return h; }
+int Engine::getW() 
+{ 
+    return w; 
+}
+
+int Engine::getH() 
+{ 
+    return h; 
+}
 
 bool Engine::checkCollision(const Object &a, const Object &b)
 {
@@ -368,20 +388,16 @@ string Engine::padzero(int n, int width)
     return s;
 }
 
-// ======================
-// Colisões: Grid simples
-// ======================
-
 struct Engine_CellKey {
     int gx, gy;
     bool operator==(const Engine_CellKey& o) const { return gx == o.gx && gy == o.gy; }
 };
+
 struct Engine_CellKeyHash {
     size_t operator()(const Engine_CellKey& k) const {
         return (uint64_t(uint32_t(k.gx)) << 32) ^ uint32_t(k.gy);
     }
 };
-static constexpr int ENGINE_COLL_CELL = 64;
 
 static inline bool Engine_rectOverlap(const Object* a, const Object* b) {
     return (a->x < b->x + b->getW()) &&
@@ -473,6 +489,28 @@ void Engine::requestDestroy(Object* obj) {
     }
 }
 
+void Engine::requestDestroyByType(int type) 
+{
+    int i = 0;
+    for (Object* o : ordered_objects) {
+        if (o && o->type == type && !o->defunct) 
+        {
+            requestDestroy(o);
+        }
+    }    
+}
+
+void Engine::requestDestroyByTag(int tag) 
+{
+    int i = 0;
+    for (Object* o : ordered_objects) {
+        if (o && o->tag == tag && !o->defunct) 
+        {
+            requestDestroy(o);
+        }
+    }    
+}
+
 void Engine::flushDestroyQueue() {
     // destrói de fato (fora de colisão/desenho)
     for (Object* obj : destroy_queue) {
@@ -485,3 +523,131 @@ void Engine::flushDestroyQueue() {
     }
     destroy_queue.clear();
 }
+
+int Engine::randRangeInt(int x, int y) {
+    static std::mt19937 rng(std::random_device{}()); // inicializa uma vez
+    std::uniform_int_distribution<int> dist(x, y);   // intervalo inclusivo
+    return dist(rng); 
+}
+
+Object* Engine::getObject(int i)
+{
+    return objects[i].get();
+}
+
+void Engine::drawRect(int x, int y, int w, int h, const Color& c, bool filled)
+{
+    // salvar cor atual do renderer
+    Uint8 oldR, oldG, oldB, oldA;
+    SDL_GetRenderDrawColor(renderer, &oldR, &oldG, &oldB, &oldA);
+
+    // define a cor temporária
+    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+
+    SDL_Rect rect{ x, y, w, h };
+    if (filled) {
+        SDL_RenderFillRect(renderer, &rect);
+    } else {
+        SDL_RenderDrawRect(renderer, &rect);
+    }
+
+    // restaura cor antiga
+    SDL_SetRenderDrawColor(renderer, oldR, oldG, oldB, oldA);
+}
+
+void Engine::drawLine(int x1, int y1, int x2, int y2, const Color& c)
+{
+    Uint8 oldR, oldG, oldB, oldA;
+    SDL_GetRenderDrawColor(renderer, &oldR, &oldG, &oldB, &oldA);
+
+    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+
+    SDL_SetRenderDrawColor(renderer, oldR, oldG, oldB, oldA);
+}
+
+void Engine::drawCircle(int cx, int cy, int radius, const Color& c, bool filled)
+{
+    Uint8 oldR, oldG, oldB, oldA;
+    SDL_GetRenderDrawColor(renderer, &oldR, &oldG, &oldB, &oldA);
+
+    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+
+    if (filled) {
+        // Preenchido: desenha linhas horizontais de -r a +r
+        for (int dy = -radius; dy <= radius; dy++) {
+            int dx = (int)std::sqrt(radius * radius - dy * dy);
+            SDL_RenderDrawLine(renderer, cx - dx, cy + dy, cx + dx, cy + dy);
+        }
+    } else {
+        // Apenas contorno: Midpoint circle
+        int x = radius;
+        int y = 0;
+        int err = 0;
+
+        while (x >= y) {
+            SDL_RenderDrawPoint(renderer, cx + x, cy + y);
+            SDL_RenderDrawPoint(renderer, cx + y, cy + x);
+            SDL_RenderDrawPoint(renderer, cx - y, cy + x);
+            SDL_RenderDrawPoint(renderer, cx - x, cy + y);
+            SDL_RenderDrawPoint(renderer, cx - x, cy - y);
+            SDL_RenderDrawPoint(renderer, cx - y, cy - x);
+            SDL_RenderDrawPoint(renderer, cx + y, cy - x);
+            SDL_RenderDrawPoint(renderer, cx + x, cy - y);
+
+            if (err <= 0) {
+                y += 1;
+                err += 2*y + 1;
+            }
+            if (err > 0) {
+                x -= 1;
+                err -= 2*x + 1;
+            }
+        }
+    }
+
+    SDL_SetRenderDrawColor(renderer, oldR, oldG, oldB, oldA);
+}
+
+void Engine::drawPoint(int x, int y, const Color& c)
+{
+    Uint8 oldR, oldG, oldB, oldA;
+    SDL_GetRenderDrawColor(renderer, &oldR, &oldG, &oldB, &oldA);
+
+    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+    SDL_RenderDrawPoint(renderer, x, y);
+
+    SDL_SetRenderDrawColor(renderer, oldR, oldG, oldB, oldA);
+}
+
+void Engine::drawLineRect(int x, int y, int w, int h, const Color& c)
+{
+    drawLine(x, y, x + w, y, c);       // topo
+    drawLine(x + w, y, x + w, y + h, c); // direita
+    drawLine(x + w, y + h, x, y + h, c); // baixo
+    drawLine(x, y + h, x, y, c);       // esquerda
+}
+
+void Engine::drawGrid(int cellW, int cellH, const Color& c)
+{
+    for (int x = 0; x < w; x += cellW)
+        drawLine(x, 0, x, h, c);
+    for (int y = 0; y < h; y += cellH)
+        drawLine(0, y, w, y, c);
+}
+
+void Engine::drawPolygon(const vector<pair<int,int>>& pts, const Color& c, bool closed)
+{
+    if (pts.size() < 2) return;
+    for (size_t i = 0; i < pts.size()-1; i++)
+        drawLine(pts[i].first, pts[i].second, pts[i+1].first, pts[i+1].second, c);
+    if (closed)
+        drawLine(pts.back().first, pts.back().second, pts[0].first, pts[0].second, c);
+}
+
+void Engine::drawCross(int cx, int cy, int size, const Color& c)
+{
+    drawLine(cx - size, cy, cx + size, cy, c);
+    drawLine(cx, cy - size, cx, cy + size, c);
+}
+

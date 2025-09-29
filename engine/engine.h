@@ -80,6 +80,8 @@ public:
     inline Sint16 padAxis(SDL_GameControllerAxis axis, int i=0)     { return inputSys.padAxis(axis,i); }
 
     void requestDestroy(Object* obj); // agenda destruição
+    void requestDestroyByType(int type);    // destroi todos objetos do tipo type
+    void requestDestroyByTag(int tag);     // destroi todos objetos da tag tag
 
     template <typename T>
     static T choose(initializer_list<T> values) {
@@ -130,9 +132,15 @@ public:
 
     TTF_Font* getFont(const string &name, int size);
 
-    void drawText(const string &text, int x, int y,
-                  const string &fontName, int fontSize,
-                  SDL_Color color, bool centered);
+    void drawText(const string &text, int x, int y, const string &fontName, int fontSize, SDL_Color color, bool centered);
+    void drawRect(int x, int y, int w, int h, const Color& c, bool filled);
+    void drawLine(int x1, int y1, int x2, int y2, const Color& c);
+    void drawCircle(int cx, int cy, int radius, const Color& c, bool filled);
+    void drawPoint(int x, int y, const Color& c);
+    void drawLineRect(int x, int y, int w, int h, const Color& c);
+    void drawGrid(int cellW, int cellH, const Color& c);
+    void drawPolygon(const vector<pair<int,int>>& pts, const Color& c, bool closed=true);
+    void drawCross(int cx, int cy, int size, const Color& c);
 
     void calculateAndRender();
     void calculateAll();
@@ -144,9 +152,12 @@ public:
     void processCollisions();
     int countObjectTypes(int type);
     int countObjectTags(int tag);
+    int randRangeInt(int x, int y);
 
     template <typename T>
     void log(const string &msg, const T &value) {
         cerr << msg << value << '\n';
     }
+
+    Object* getObject(int i);
 };

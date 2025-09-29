@@ -12,6 +12,11 @@ struct Color
     uint8_t r{255}, g{255}, b{255}, a{255}; // default branco
 };
 
+struct Alarm {
+    int frames;   // tempo restante em frames/ticks
+    int id;     // identificação
+};
+
 class Engine;
 
 class Object
@@ -88,14 +93,15 @@ public:
     int font_size;    // tamanho da fonte
     string text;      // se definido será mostrado na fonte acima
 
-    vector<int> alarms; // alarmes, ao finalizar, gera um evento
+    vector<Alarm> alarms; // alarmes, ao finalizar, gera um evento
 
     // eventos
     function<void(Object *)> onAnimationEnd;
     function<void(Object *)> onBeforeDraw;
+    function<void(Object *)> onAfterDraw;
     function<void(Object *)> onBeforeCalculate;
     function<void(Object *)> onAfterCalculate;
-    function<void(Object *, int index)> onAlarmFinished;
+    function<void(Object *, int id)> onAlarmFinished;
     function<void(Object *, Object *)> onCollision;
 
     ~Object();
@@ -162,7 +168,7 @@ public:
     bool destroyIfLowEnergy();
     float getFinalDirection() const;
     string getCurrentImageRef();
-    void setAlarm(int frames);
+    void setAlarm(int frames, int id);
     Color withAlpha(const Color& base, uint8_t alpha);
 
     // getters
