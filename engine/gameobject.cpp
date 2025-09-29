@@ -194,12 +194,16 @@ void Object::setScale(float s)
     y_scale = s;
 }
 
+void Object::setAngle(float angle, float angle_speed)
+{
+    this->angle = angle;
+    this->angle_speed = angle_speed;
+}
 
 void Object::requestDestroy()
 {
     engine->requestDestroy(this);
 }
-
 
 float Object::getFinalDirection() const
 {
@@ -227,7 +231,6 @@ Color Object::withAlpha(const Color& base, uint8_t alpha)
 {
     return Color{ base.r, base.g, base.b, alpha };
 }
-
 
 // getters
 int Object::getW() const {return w * x_scale;}

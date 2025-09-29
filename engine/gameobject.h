@@ -87,6 +87,7 @@ public:
     float image_index;      // imagem mostrada no momento de 0 a images.size()
     float image_speed;      // velocidade de transição para a proxima imagem
     ImageCycle image_cycle; // ao terminar o ciclo de imagens o que fazer
+    bool centered;          // vai centralizar a imagem
 
     string font_name; // Nome da fonte
     Color font_color; // cor da fonte
@@ -141,6 +142,8 @@ public:
         image_index = 0;
         image_speed = 0;
         image_cycle = LOOP;
+        centered    = true;
+
         font_color = {255, 255, 255, 255};
         defunct = false;
     }
@@ -162,6 +165,8 @@ public:
 
     void setImpulse(float ix, float iy);
     void setImpulseDirection(float dir, float f);
+
+    void setAngle(float angle, float angle_speed);
 
     void requestDestroy();
     void applyImpact(Object *other);

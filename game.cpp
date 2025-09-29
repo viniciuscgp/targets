@@ -5,6 +5,7 @@
 
 const int TYPE_TIRO_NAVE = 1;
 const int TYPE_INIM      = 2;
+const int TYPE_ENERGY    = 3;
 const int MAX_ENERGY     = 100;
 
 // 35                               1     2     3    4     5      6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21     22     23     24     25     26     27     28     29     30     31     32      33    34     35
@@ -15,7 +16,7 @@ const float INIM_FORCEY[]        = {3.0f, 3.0f, 3.0f, 3.0f, 1.0f, 1.0f, 3.0f, 3.
 const int   WAVE_ENEMY_NUMBER[]  = {   5,    6,    7,    7,    7,    8,   9,    9,   10,   10,   10,   11,   11,   12,   12,   12,   13,   14,   15,   16,    17};
 const int   WAVE_ENERGY[]        = {   5,    5,    5,   10,   15,   15,  15,   25,   25,   30,   30,   30,   30,   30,   30,   30,   30,   30,   30,   30,    30};
 const float WAVE_SCALE[]         = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-const int   WAVA_KILLS[]         = {  10,   15,   30,   30,   30,   30,   30,   40,   40,   40,   40,   40,   40,   40,   40,   40,   40,   50,   50,   50,   50};
+const int   WAVE_KILLS[]         = {  10,   15,   30,   30,   30,   30,   30,   40,   40,   40,   40,   40,   40,   40,   40,   40,   40,   50,   50,   50,   50};
 
 const vector<vector<int>> WAVE_ENEMY_TYPE = {
     {1, 2},
@@ -128,13 +129,14 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
 void TargetsGame::carregaRecursos()
 {
-    g.loadImage("assets/title.png",          "title");
-    g.loadImage("assets/game_over.png",      "gover");
+    g.loadImage("assets/title.png",           "title");
+    g.loadImage("assets/game_over.png",       "gover");
     g.loadImage("assets/push_space_key2.png", "push");
-    g.loadImage("assets/nave_1.png",         "nave_1");
-    g.loadImage("assets/nave_2.png",         "nave_2");
-    g.loadImage("assets/nave_tiro.png",      "tiro");
-    g.loadImage("assets/estrela.png",        "estrela");
+    g.loadImage("assets/nave_1.png",          "nave_1");
+    g.loadImage("assets/nave_2.png",          "nave_2");
+    g.loadImage("assets/nave_tiro.png",       "tiro");
+    g.loadImage("assets/estrela.png",         "estrela");
+    g.loadImage("assets/energy_drop_1.png",   "energy");
 
     for (int i = 0; i < TOTAL_ENEMY; i++)
     {
@@ -167,8 +169,8 @@ void TargetsGame::criaObjetos(string_view qual)
         };
 
         nave->collision_group = -1; // nao colide
-        nave->setAlarm(7, 1);
-        nave->setAlarm(15, 2);
+        nave->setAlarm(7, 1);  // pisca enquanto imune
+        nave->setAlarm(15, 2); // gasta energia
         nave->tag = 10;
         nave->onAlarmFinished = [this](Object *nave, int id) {
             if (id == 1)
@@ -193,6 +195,14 @@ void TargetsGame::criaObjetos(string_view qual)
                 }
             }
         };
+        nave->onCollision=[this](Object *me, Object *other) 
+        {
+            if (other->type == TYPE_ENERGY)   
+            {
+                this->energy += 10 % MAX_ENERGY;
+                other->requestDestroy();
+            }
+        };
 
         return;
     }
@@ -208,7 +218,7 @@ void TargetsGame::criaObjetos(string_view qual)
         title = g.createObject(0, 0, "title");
         title->setScale(0.4f);
         g.centerXObject(title);
-        title->y = 15;
+        title->y = 20 + title->getH() / 2;
         return;
     }
 
@@ -240,9 +250,10 @@ void TargetsGame::criaObjetos(string_view qual)
     if (qual == "wave")
     {
         kills  = 0;
-        display_wave = g.createObject(g.getW() / 2 - 32, g.getH() / 2 + 90, 64, 64, "", 0, 0);
+        display_wave = g.createObject(0, 0, 64, 64, "", 0, 0);
         display_wave->setFont("FontdinerSwanky-Regular.ttf", 48, Object::COLOR_WHITE);
         display_wave->setAlarm(180, 0);
+        g.centerObject(display_wave);
         display_wave->onBeforeDraw = [this](Object *self)
         {
             self->text = "WAVE " + g.padzero(wave, 2);
@@ -270,33 +281,37 @@ void TargetsGame::criaObjetos(string_view qual)
 
     if (qual == "hud")
     {
-        hud_score = g.createObject(40, 60, 64, 64, "", 0, 0);
+        hud_score = g.createObject(20, 10, 64, 64, "", 0, 0);
         hud_score->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
+        hud_score->centered = false;
         hud_score->onBeforeDraw = [this](Object *self)
         {
             self->text = "SCORE: " + g.padzero(score, 4);
         };
 
-        hud_wave = g.createObject(140, 60, 64, 64, "", 0, 0);
+        hud_wave = g.createObject(160, 10, 64, 64, "", 0, 0);
         hud_wave->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_WHITE, 170));
+        hud_wave->centered = false;
         hud_wave->onBeforeDraw = [this](Object *self)
         {
             self->text = "W: " + to_string(wave);
         };
 
-        hud_hi = g.createObject(g.getW() - 40 - 60, 60, 64, 64, "", 0, 0);
+        hud_hi = g.createObject(g.getW() - 40 - 60, 10, 64, 64, "", 0, 0);
         hud_hi->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
+        hud_hi->centered = false;
         hud_hi->onBeforeDraw = [this](Object *self)
         {
             self->text = "HI: " + g.padzero(hi, 4);
         };
 
-        hud_energy = g.createObject(80, g.getH(), 8, 8, "", 0, 0);
+        hud_energy = g.createObject(20, g.getH() - 40, 8, 8, "", 0, 0);
         hud_energy->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
+        hud_energy->centered = false;
         hud_energy->onBeforeDraw = [this](Object *self)
         {
-            int x = self -> x + 70;
-            int y = self -> y - 40;
+            int x = self -> x + 130;
+            int y = self -> y + 5;
             self->text = "Ship Energy: ";
             g.drawRect(x, y, MAX_ENERGY, 20, Object::COLOR_WHITE, false);
             g.drawRect(x, y, energy, 20, Object::COLOR_CYAN, true);
@@ -307,10 +322,9 @@ void TargetsGame::criaObjetos(string_view qual)
 
     if (qual == "tironave")
     {
-        Object *o = g.createObject((int)nave->x + nave->getW() / 2 - 2,
-                                   (int)nave->y, 12, 16, "tiro", TYPE_TIRO_NAVE, 3);
+        Object *o = g.createObject((int)nave->x, (int)nave->y, 12, 16, "tiro", TYPE_TIRO_NAVE, 3);
         o->y_force = -8;
-        o->atack = 5;
+        o->atack   = 5;
         o->onAfterCalculate = [](Object *self)
         {
             if (self->y < -8) self->requestDestroy(); 
@@ -331,7 +345,37 @@ void TargetsGame::criaObjetos(string_view qual)
                 score += 10;
                 hi    += 10;
                 kills += 1;
-                if (kills >= WAVA_KILLS[wave] && g.countObjectTypes(TYPE_INIM) == 0) 
+
+                if (g.choose(1, 1, 2) == 2) 
+                {
+                    Object *energy = g.createObject(other->x, other->y, "energy");
+                    energy->type = TYPE_ENERGY;
+                    energy->setScale(0.1f);
+                    energy->setAngle(0, 1);
+                    energy->setAlarm(5, 1);   // giro 
+                    energy->setAlarm(5, 2);   // muda direcao
+                    energy->setAlarm(150, 3); // destroi
+                    energy->centered = true;
+                    energy->onAlarmFinished = [this](Object *energy, int id){
+                        if (id == 3)
+                        {
+                            energy->requestDestroy();
+                        } else
+                        if (id == 2) 
+                        {
+                            energy->setDirection(rand() % 360, g.choose(1.0f, 2.0f));
+                            energy->setAlarm(55, 2);
+                        } else {
+                            energy->setScale(energy->x_scale + 0.01f);
+                            if (energy->x_scale > 0.2f) 
+                            {
+                                energy->setScale(0.1f);
+                            }
+                            energy->setAlarm(5, 1);
+                        }
+                    };
+                }   
+                if (kills >= WAVE_KILLS[wave] && g.countObjectTypes(TYPE_INIM) == 0) 
                 {
                     wave++;
                     nave->requestDestroy();
@@ -367,7 +411,7 @@ void TargetsGame::criaObjetos(string_view qual)
             bool valido = false;
             while (!valido)
             {
-                x = g.randRangeInt(0, (g.getW() / 48) - 1) * 48;
+                x = g.randRangeInt(1, (g.getW() / 48) - 1) * 48;
                 valido = true;
 
                 for (int col : usados)
@@ -380,7 +424,7 @@ void TargetsGame::criaObjetos(string_view qual)
                 }
             }
             usados.push_back(x);
-            y      = 0;
+            y      = -g.choose(10, 20, 30, 40, 50, 60);
             in     = g.choose(WAVE_ENEMY_TYPE[wave - 1]) - 1;                  // 0 - x escolhe o tipo de inimigo
             forcex = g.choose(INIM_FORCEX[in]);
             forcey = g.choose(INIM_FORCEY[in], INIM_FORCEY[in], INIM_FORCEY[in] + 1, INIM_FORCEY[in] + 2);
@@ -401,6 +445,7 @@ void TargetsGame::criaObjetos(string_view qual)
         }
         return;
     }
+
     if (qual == "estrelas")
     {
         for (int i = 0; i < TOTAL_STARS; i++)

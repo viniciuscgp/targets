@@ -13,6 +13,8 @@
 #include <cstdarg>
 #include <unordered_map>
 #include <random>
+#include <array>
+#include <utility>
 #include "resources.h"
 #include "gameobject.h"
 #include "input.h"
@@ -67,6 +69,12 @@ public:
     bool running;
 
 // --- Wrappers de input (o jogo só chama Engine) ---
+    // --- Helpers de AABB (funcionam com x/y sendo centro ou canto)
+    static inline int objLeft  (const Object* o) { return o->centered ? int(o->x - o->getW()/2) : int(o->x); }
+    static inline int objTop   (const Object* o) { return o->centered ? int(o->y - o->getH()/2) : int(o->y); }
+    static inline int objRight (const Object* o) { return objLeft(o) + o->getW(); }
+    static inline int objBottom(const Object* o) { return objTop(o)  + o->getH(); }
+
     inline bool quitRequested()              { return inputSys.quitRequested(); }
     inline bool keyHeld(SDL_Scancode sc)     { return inputSys.keyHeld(sc); }
     inline bool keyPressed(SDL_Scancode sc)  { return inputSys.keyPressed(sc); }
@@ -103,11 +111,10 @@ public:
     static decay_t<T> choose(T&& first, Ts&&... rest) {
         using U = decay_t<T>;
         constexpr size_t N = sizeof...(Ts) + 1;
-        array<U, N> arr{{ forward<T>(first), forward<Ts>(rest)... }};
+        std::array<U, N> arr{{ static_cast<U>(std::forward<T>(first)), static_cast<U>(std::forward<Ts>(rest))... }};
         uniform_int_distribution<size_t> dist(0, N - 1);
         return arr[dist(rng())];
     }
-
 
     bool init(const char *title, int largura, int altura);
 
@@ -120,8 +127,10 @@ public:
     void playSound(string soundRef);
 
     Object *createObject(int x, int y, int w, int h, string texture, int type = 0, int depth = 0);
-    Object *createObject(int x, int y);
+    Object *createObject(int x, int y, string imageRef, int type);
     Object *createObject(int x, int y, string imageRef);
+    Object *createObject(int x, int y, int type);
+    Object *createObject(int x, int y);
 
     void centerXObject(Object *go);
     void centerYObject(Object *go);

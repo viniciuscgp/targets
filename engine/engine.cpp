@@ -1,9 +1,10 @@
 #include "engine.h"
 #include <cmath>
 
-// Converter Color -> SDL_Color
+// grade do broad-phase
 static constexpr int ENGINE_COLL_CELL = 64;
 
+// Converter Color -> SDL_Color
 static inline SDL_Color toSDL(const Color &c) {
     return SDL_Color{ c.r, c.g, c.b, c.a };
 }
@@ -97,31 +98,27 @@ void Engine::drawObject(Object *go)
 {
     if (go->onBeforeDraw) go->onBeforeDraw(go);
 
-    // imagem
+    // imagem (usa AABB consistente)
     const string img = go->getCurrentImageRef();
     if (!img.empty()) {
-        drawImage(img, (int)go->x, (int)go->y, go->getW(), go->getH(), go->angle);
+        drawImage(img, objLeft(go), objTop(go), go->getW(), go->getH(), go->angle);
     }
 
-    // texto acima
+    // texto exatamente na posição do objeto
     if (!go->text.empty() && !go->font_name.empty()) {
-        int fsize = 16;
-        if (go->font_size > 0) fsize = go->font_size;
-
+        int fsize = go->font_size > 0 ? go->font_size : 16;
         TTF_Font *font = getFont(go->font_name, fsize);
         if (font) {
-            int tw = 0, th = 0;
-            TTF_SizeUTF8(font, go->text.c_str(), &tw, &th);
-
-            const int padding = 2;
-            int cx = (int)go->x + go->getW() / 2;
-            int ty = (int)go->y - th - padding;
-
-            drawText(go->text, cx, ty, go->font_name, fsize, toSDL(go->font_color), true);
+            // quando centered=true, drawText centraliza em (x,y)
+            // quando centered=false, drawText usa (x,y) como top-left
+            const bool centerText = go->centered;
+            const int tx = int(go->x);
+            const int ty = int(go->y);
+            drawText(go->text, tx, ty, go->font_name, fsize, toSDL(go->font_color), centerText);
         }
     }
-    if (go->onAfterDraw) go->onAfterDraw(go);
 
+    if (go->onAfterDraw) go->onAfterDraw(go);
 }
 
 void Engine::loadImage(string path, string tag)
@@ -255,24 +252,42 @@ Object *Engine::createObject(int x, int y, string imageRef)
     return createObject(x, y, 0, 0, imageRef, 0, 0);
 }
 
+Object *Engine::createObject(int x, int y, string imageRef, int type)
+{
+    return createObject(x, y, 0, 0, imageRef, type, type);
+}
+
+Object *Engine::createObject(int x, int y, int type)
+{
+    return createObject(x, y, 0, 0, "", type, type);
+}
+
+
 Object *Engine::createObject(int x, int y)
 {
     return createObject(x, y, 0, 0, "", 0, 0);
 }
 
 void Engine::centerXObject(Object *go)
-{ 
-    go->x = (w - go->getW()) / 2; 
+{
+    if (go->centered)
+        go->x = w * 0.5f;
+    else
+        go->x = (w - go->getW()) * 0.5f;
 }
 
-void Engine::centerYObject(Object *go) 
-{ 
-    go->y = (h - go->getH()) / 2; 
+void Engine::centerYObject(Object *go)
+{
+    if (go->centered)
+        go->y = h * 0.5f;
+    else
+        go->y = (h - go->getH()) * 0.5f; 
 }
 
-void Engine::centerObject (Object *go) 
-{ 
-    centerXObject(go); centerYObject(go); 
+void Engine::centerObject(Object *go)
+{
+    centerXObject(go);
+    centerYObject(go);
 }
 
 void Engine::destroyObject(Object *obj)
@@ -363,22 +378,15 @@ void Engine::clear()
     objects.clear();
 }
 
-int Engine::getW() 
-{ 
-    return w; 
-}
-
-int Engine::getH() 
-{ 
-    return h; 
-}
+int Engine::getW() { return w; }
+int Engine::getH() { return h; }
 
 bool Engine::checkCollision(const Object &a, const Object &b)
 {
-    return (a.x < b.x + b.getW()) &&
-           (a.x + a.getW() > b.x) &&
-           (a.y < b.y + b.getH()) &&
-           (a.y + a.getH() > b.y);
+    return (objLeft(&a)   < objRight(&b)) &&
+           (objRight(&a)  > objLeft(&b))  &&
+           (objTop(&a)    < objBottom(&b))&&
+           (objBottom(&a) > objTop(&b));
 }
 
 string Engine::padzero(int n, int width)
@@ -400,10 +408,10 @@ struct Engine_CellKeyHash {
 };
 
 static inline bool Engine_rectOverlap(const Object* a, const Object* b) {
-    return (a->x < b->x + b->getW()) &&
-           (a->x + a->getW() > b->x) &&
-           (a->y < b->y + b->getH()) &&
-           (a->y + a->getH() > b->y);
+    return (Engine::objLeft(a)   < Engine::objRight(b)) &&
+           (Engine::objRight(a)  > Engine::objLeft(b))  &&
+           (Engine::objTop(a)    < Engine::objBottom(b))&&
+           (Engine::objBottom(a) > Engine::objTop(b));
 }
 
 // regra de grupo: 0 colide com todos; !=0 só colide com iguais
@@ -417,10 +425,15 @@ static inline void Engine_putInCells(
     unordered_map<Engine_CellKey, vector<Object*>, Engine_CellKeyHash>& grid,
     Object* o)
 {
-    int x0 = int(floor(o->x)) / ENGINE_COLL_CELL;
-    int y0 = int(floor(o->y)) / ENGINE_COLL_CELL;
-    int x1 = int(floor(o->x + o->getW() - 1)) / ENGINE_COLL_CELL;
-    int y1 = int(floor(o->y + o->getH() - 1)) / ENGINE_COLL_CELL;
+    const int lx = Engine::objLeft(o);
+    const int ty = Engine::objTop(o);
+    const int rx = Engine::objRight(o)  - 1; // incluir borda
+    const int by = Engine::objBottom(o) - 1;
+
+    int x0 = lx / ENGINE_COLL_CELL;
+    int y0 = ty / ENGINE_COLL_CELL;
+    int x1 = rx / ENGINE_COLL_CELL;
+    int y1 = by / ENGINE_COLL_CELL;
 
     for (int gy = y0; gy <= y1; ++gy) {
         for (int gx = x0; gx <= x1; ++gx) {
@@ -491,10 +504,8 @@ void Engine::requestDestroy(Object* obj) {
 
 void Engine::requestDestroyByType(int type) 
 {
-    int i = 0;
     for (Object* o : ordered_objects) {
-        if (o && o->type == type && !o->defunct) 
-        {
+        if (o && o->type == type && !o->defunct) {
             requestDestroy(o);
         }
     }    
@@ -502,10 +513,8 @@ void Engine::requestDestroyByType(int type)
 
 void Engine::requestDestroyByTag(int tag) 
 {
-    int i = 0;
     for (Object* o : ordered_objects) {
-        if (o && o->tag == tag && !o->defunct) 
-        {
+        if (o && o->tag == tag && !o->defunct) {
             requestDestroy(o);
         }
     }    
@@ -515,18 +524,17 @@ void Engine::flushDestroyQueue() {
     // destrói de fato (fora de colisão/desenho)
     for (Object* obj : destroy_queue) {
         if (!obj) continue;
-        // só destrói se ainda estiver vivo no Engine
         auto it = find(ordered_objects.begin(), ordered_objects.end(), obj);
         if (it != ordered_objects.end()) {
-            destroyObject(obj); // usa sua função atual
+            destroyObject(obj);
         }
     }
     destroy_queue.clear();
 }
 
 int Engine::randRangeInt(int x, int y) {
-    static std::mt19937 rng(std::random_device{}()); // inicializa uma vez
-    std::uniform_int_distribution<int> dist(x, y);   // intervalo inclusivo
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> dist(x, y);   // inclusivo
     return dist(rng); 
 }
 
@@ -535,23 +543,17 @@ Object* Engine::getObject(int i)
     return objects[i].get();
 }
 
+// --- desenho (preservando cor do renderer)
 void Engine::drawRect(int x, int y, int w, int h, const Color& c, bool filled)
 {
-    // salvar cor atual do renderer
     Uint8 oldR, oldG, oldB, oldA;
     SDL_GetRenderDrawColor(renderer, &oldR, &oldG, &oldB, &oldA);
 
-    // define a cor temporária
     SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-
     SDL_Rect rect{ x, y, w, h };
-    if (filled) {
-        SDL_RenderFillRect(renderer, &rect);
-    } else {
-        SDL_RenderDrawRect(renderer, &rect);
-    }
+    if (filled) SDL_RenderFillRect(renderer, &rect);
+    else        SDL_RenderDrawRect(renderer, &rect);
 
-    // restaura cor antiga
     SDL_SetRenderDrawColor(renderer, oldR, oldG, oldB, oldA);
 }
 
@@ -574,17 +576,12 @@ void Engine::drawCircle(int cx, int cy, int radius, const Color& c, bool filled)
     SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
 
     if (filled) {
-        // Preenchido: desenha linhas horizontais de -r a +r
         for (int dy = -radius; dy <= radius; dy++) {
             int dx = (int)std::sqrt(radius * radius - dy * dy);
             SDL_RenderDrawLine(renderer, cx - dx, cy + dy, cx + dx, cy + dy);
         }
     } else {
-        // Apenas contorno: Midpoint circle
-        int x = radius;
-        int y = 0;
-        int err = 0;
-
+        int x = radius, y = 0, err = 0;
         while (x >= y) {
             SDL_RenderDrawPoint(renderer, cx + x, cy + y);
             SDL_RenderDrawPoint(renderer, cx + y, cy + x);
@@ -594,15 +591,8 @@ void Engine::drawCircle(int cx, int cy, int radius, const Color& c, bool filled)
             SDL_RenderDrawPoint(renderer, cx - y, cy - x);
             SDL_RenderDrawPoint(renderer, cx + y, cy - x);
             SDL_RenderDrawPoint(renderer, cx + x, cy - y);
-
-            if (err <= 0) {
-                y += 1;
-                err += 2*y + 1;
-            }
-            if (err > 0) {
-                x -= 1;
-                err -= 2*x + 1;
-            }
+            if (err <= 0) { y += 1; err += 2*y + 1; }
+            if (err > 0)  { x -= 1; err -= 2*x + 1; }
         }
     }
 
@@ -622,18 +612,16 @@ void Engine::drawPoint(int x, int y, const Color& c)
 
 void Engine::drawLineRect(int x, int y, int w, int h, const Color& c)
 {
-    drawLine(x, y, x + w, y, c);       // topo
-    drawLine(x + w, y, x + w, y + h, c); // direita
-    drawLine(x + w, y + h, x, y + h, c); // baixo
-    drawLine(x, y + h, x, y, c);       // esquerda
+    drawLine(x, y, x + w, y, c);
+    drawLine(x + w, y, x + w, y + h, c);
+    drawLine(x + w, y + h, x, y + h, c);
+    drawLine(x, y + h, x, y, c);
 }
 
 void Engine::drawGrid(int cellW, int cellH, const Color& c)
 {
-    for (int x = 0; x < w; x += cellW)
-        drawLine(x, 0, x, h, c);
-    for (int y = 0; y < h; y += cellH)
-        drawLine(0, y, w, y, c);
+    for (int x = 0; x < w; x += cellW) drawLine(x, 0, x, h, c);
+    for (int y = 0; y < h; y += cellH) drawLine(0, y, w, y, c);
 }
 
 void Engine::drawPolygon(const vector<pair<int,int>>& pts, const Color& c, bool closed)
@@ -650,4 +638,3 @@ void Engine::drawCross(int cx, int cy, int size, const Color& c)
     drawLine(cx - size, cy, cx + size, cy, c);
     drawLine(cx, cy - size, cx, cy + size, c);
 }
-
