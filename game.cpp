@@ -6,6 +6,8 @@
 const int TYPE_TIRO_NAVE = 1;
 const int TYPE_INIM      = 2;
 const int TYPE_ENERGY    = 3;
+const int TYPE_HUD       = 4;
+
 const int MAX_ENERGY     = 100;
 
 // 35                               1     2     3    4     5      6     7     8     9     10    11    12    13    14    15    16    17    18    19    20    21     22     23     24     25     26     27     28     29     30     31     32      33    34     35
@@ -117,10 +119,7 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
     if (estado_mudar == ST_GAMEOVER)
     {
-        g.requestDestroy(hud_score);
-        g.requestDestroy(hud_hi);
-        g.requestDestroy(hud_energy);
-        g.requestDestroy(hud_wave);
+        g.requestDestroyByType(TYPE_HUD);
         g.requestDestroy(nave);
         criaObjetos("gameover");
     }
@@ -129,14 +128,16 @@ void TargetsGame::mudaEstado(int estado_mudar)
 
 void TargetsGame::carregaRecursos()
 {
-    g.loadImage("assets/title.png",           "title");
-    g.loadImage("assets/game_over.png",       "gover");
-    g.loadImage("assets/push_space_key2.png", "push");
-    g.loadImage("assets/nave_1.png",          "nave_1");
-    g.loadImage("assets/nave_2.png",          "nave_2");
-    g.loadImage("assets/nave_tiro.png",       "tiro");
-    g.loadImage("assets/estrela.png",         "estrela");
-    g.loadImage("assets/energy_drop_1.png",   "energy");
+    g.loadImage("assets/title.png",            "title");
+    g.loadImage("assets/game_over.png",        "gover");
+    g.loadImage("assets/push_space_key2.png",  "push");
+    g.loadImage("assets/nave_1.png",           "nave_1");
+    g.loadImage("assets/nave_2.png",           "nave_2");
+    g.loadImage("assets/nave_tiro.png",        "tiro");
+    g.loadImage("assets/estrela.png",          "estrela");
+    g.loadImage("assets/energy_drop_1.png",    "energy");
+    g.loadImage("assets/game_over_alien1.png", "game_over_alien1");
+
 
     for (int i = 0; i < TOTAL_ENEMY; i++)
     {
@@ -146,9 +147,11 @@ void TargetsGame::carregaRecursos()
         g.splitImage(key, EXPL_SPLIT, key + "explode");
     }
 
-    g.loadSound("assets/nave_tiro.wav", "tiro");
-    g.loadSound("assets/inimigo_explode.wav", "explosao");
-    g.loadSound("assets/impact1.wav", "impact1");
+    g.loadSound("assets/nave_tiro.wav",        "tiro");
+    g.loadSound("assets/inimigo_explode.wav",  "explosao");
+    g.loadSound("assets/impact1.wav",          "impact1");
+    g.loadSound("assets/push_space.ogg",       "push_space");
+    g.loadSound("assets/game_over_voice3.wav", "game_over");
 }
 
 void TargetsGame::criaObjetos(string_view qual)
@@ -232,6 +235,7 @@ void TargetsGame::criaObjetos(string_view qual)
             if (g.keyPressed(SDL_SCANCODE_SPACE)) 
             {
                 push->setAlarm(8, 1);
+                g.playSound("push_space");
             }
         };
         push->onAlarmFinished=[this](Object *push, int id) 
@@ -267,21 +271,30 @@ void TargetsGame::criaObjetos(string_view qual)
 
     if (qual == "gameover")
     {
-        gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", 0, 0);
+        Object *alien = g.createObject(0, 0, 0, 0, "game_over_alien1", TYPE_HUD, 0);
+        alien->setScale(0.3);
+        g.centerObject(alien);
+        alien->y = alien->getH() / 2 + 10;
+
+        gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", TYPE_HUD, 0);
         gover->setAlarm(440, 0);
-        gover->onAlarmFinished = [this](Object *self, int id)
+        gover->onAlarmFinished = [this, alien](Object *self, int id)
         {
             self->requestDestroy();
             g.requestDestroyByType(TYPE_INIM);
             this->mudaEstado(ST_TITLE);
+            alien->requestDestroy();
         };
         g.centerObject(gover);
+        gover->y = gover->y + alien->getH() / 2 ;
+
+        g.playSound("game_over");
         return;
     }
 
     if (qual == "hud")
     {
-        hud_score = g.createObject(20, 10, 64, 64, "", 0, 0);
+        hud_score = g.createObject(20, 10, 64, 64, "", TYPE_HUD, 0);
         hud_score->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
         hud_score->centered = false;
         hud_score->onBeforeDraw = [this](Object *self)
@@ -289,7 +302,7 @@ void TargetsGame::criaObjetos(string_view qual)
             self->text = "SCORE: " + g.padzero(score, 4);
         };
 
-        hud_wave = g.createObject(160, 10, 64, 64, "", 0, 0);
+        hud_wave = g.createObject(160, 10, 64, 64, "", TYPE_HUD, 0);
         hud_wave->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_WHITE, 170));
         hud_wave->centered = false;
         hud_wave->onBeforeDraw = [this](Object *self)
@@ -297,7 +310,7 @@ void TargetsGame::criaObjetos(string_view qual)
             self->text = "W: " + to_string(wave);
         };
 
-        hud_hi = g.createObject(g.getW() - 40 - 60, 10, 64, 64, "", 0, 0);
+        hud_hi = g.createObject(g.getW() - 40 - 60, 10, 64, 64, "", TYPE_HUD, 0);
         hud_hi->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
         hud_hi->centered = false;
         hud_hi->onBeforeDraw = [this](Object *self)
@@ -305,7 +318,7 @@ void TargetsGame::criaObjetos(string_view qual)
             self->text = "HI: " + g.padzero(hi, 4);
         };
 
-        hud_energy = g.createObject(20, g.getH() - 40, 8, 8, "", 0, 0);
+        hud_energy = g.createObject(20, g.getH() - 40, 8, 8, "", TYPE_HUD, 0);
         hud_energy->setFont("Roboto_Condensed-Black.ttf", 24, hud_score->withAlpha(Object::COLOR_YELLOW, 140));
         hud_energy->centered = false;
         hud_energy->onBeforeDraw = [this](Object *self)
@@ -472,7 +485,7 @@ int TargetsGame::run()
     carregaRecursos();
     criaObjetos("estrelas");
     
-    mudaEstado(ST_TITLE);
+    mudaEstado(ST_GAMEOVER);
     
     hi = 0;
     while (g.running)
