@@ -20,6 +20,10 @@ Engine::~Engine()
             Mix_FreeChunk(res.sound);
             res.sound = nullptr;
         }
+        if (res.type == GameResource::MUSIC) {
+            Mix_FreeMusic(res.music);
+            res.music = nullptr;
+        }        
     }
     resources.clear();
 
@@ -223,6 +227,67 @@ void Engine::loadSound(string path, string soundRef)
         return;
     }
     resources[string(SOUND_PREFIX) + soundRef] = GameResource::CreateSound(sound);
+}
+
+void Engine::loadMusic(const string& path, const string& tag)
+{
+    Mix_Music* mus = Mix_LoadMUS(path.c_str());
+    if (!mus) {
+        log("Erro Mix_LoadMUS: ", Mix_GetError());
+        return;
+    }
+    resources[string(MUSIC_PREFIX) + tag] = GameResource::CreateMusic(mus);
+}
+
+void Engine::playMusic(const string& tag, int loops)
+{
+    const string key = string(MUSIC_PREFIX) + tag;
+    auto it = resources.find(key);
+    if (it == resources.end() || it->second.type != GameResource::MUSIC || !it->second.music) {
+        log("Música não encontrada: ", tag);
+        return;
+    }
+
+    // opcional: parar a atual antes de tocar outra
+    if (Mix_PlayingMusic()) Mix_HaltMusic();
+
+    if (Mix_PlayMusic(it->second.music, loops) == -1) {
+        log("Erro Mix_PlayMusic: ", Mix_GetError());
+        return;
+    }
+    currentMusicTag = tag;
+}
+
+void Engine::stopMusic()
+{
+    Mix_HaltMusic();
+    currentMusicTag.clear();
+}
+
+void Engine::pauseMusic()
+{
+    if (Mix_PlayingMusic() && !Mix_PausedMusic()) {
+        Mix_PauseMusic();
+    }
+}
+
+void Engine::resumeMusic()
+{
+    if (Mix_PausedMusic()) {
+        Mix_ResumeMusic();
+    }
+}
+
+bool Engine::musicIsPlaying() const
+{
+    return Mix_PlayingMusic() != 0 && Mix_PausedMusic() == 0;
+}
+
+void Engine::setMusicVolume(int volume)
+{
+    if (volume < 0) volume = 0;
+    if (volume > 128) volume = 128;
+    Mix_VolumeMusic(volume);
 }
 
 Object *Engine::createObject(int x, int y, int w, int h, string imageRef, int type, int depth)
@@ -533,8 +598,8 @@ void Engine::flushDestroyQueue() {
 }
 
 int Engine::randRangeInt(int x, int y) {
-    static std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(x, y);   // inclusivo
+    static mt19937 rng(random_device{}());
+    uniform_int_distribution<int> dist(x, y);   // inclusivo
     return dist(rng); 
 }
 
@@ -577,7 +642,7 @@ void Engine::drawCircle(int cx, int cy, int radius, const Color& c, bool filled)
 
     if (filled) {
         for (int dy = -radius; dy <= radius; dy++) {
-            int dx = (int)std::sqrt(radius * radius - dy * dy);
+            int dx = (int)sqrt(radius * radius - dy * dy);
             SDL_RenderDrawLine(renderer, cx - dx, cy + dy, cx + dx, cy + dy);
         }
     } else {
@@ -638,3 +703,6 @@ void Engine::drawCross(int cx, int cy, int size, const Color& c)
     drawLine(cx - size, cy, cx + size, cy, c);
     drawLine(cx, cy - size, cx, cy + size, c);
 }
+
+
+

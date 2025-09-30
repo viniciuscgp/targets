@@ -6,11 +6,12 @@
 
 class GameResource {
 public:
-    enum Type { NONE = 0, TEXTURE = 1, SOUND = 2 };
+    enum Type { NONE = 0, TEXTURE = 1, SOUND = 2, MUSIC = 3};
     
     Type type;
     SDL_Texture *texture;
     Mix_Chunk *sound;
+    Mix_Music *music;
     
     GameResource() : type(NONE), texture(nullptr), sound(nullptr) {}
     
@@ -28,8 +29,16 @@ public:
         return res;
     }
     
-    bool isValid() const { 
-        return (type == TEXTURE && texture != nullptr) || 
-               (type == SOUND && sound != nullptr); 
+    static GameResource CreateMusic(Mix_Music* mus) {
+        GameResource res;
+        res.type = MUSIC;
+        res.music = mus;
+        return res;
+    }
+
+    bool isValid() const {
+        return (type == TEXTURE && texture != nullptr) ||
+               (type == SOUND   && sound   != nullptr) ||
+               (type == MUSIC   && music   != nullptr);
     }
 };

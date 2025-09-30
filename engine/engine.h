@@ -34,6 +34,9 @@ class Engine {
 private:
     static constexpr const char *TEXTURE_PREFIX = "TEX";
     static constexpr const char *SOUND_PREFIX   = "SND";
+    static constexpr const char *MUSIC_PREFIX   = "MUS";
+    string currentMusicTag;
+
     Input inputSys;
 
     int w, h;
@@ -75,21 +78,21 @@ public:
     static inline int objRight (const Object* o) { return objLeft(o) + o->getW(); }
     static inline int objBottom(const Object* o) { return objTop(o)  + o->getH(); }
 
-    inline bool quitRequested()              { return inputSys.quitRequested(); }
-    inline bool keyHeld(SDL_Scancode sc)     { return inputSys.keyHeld(sc); }
-    inline bool keyPressed(SDL_Scancode sc)  { return inputSys.keyPressed(sc); }
-    inline bool keyReleased(SDL_Scancode sc) { return inputSys.keyReleased(sc); }
+    inline bool quitRequested()                  { return inputSys.quitRequested(); }
+    inline bool keyHeld(SDL_Scancode sc)         { return inputSys.keyHeld(sc); }
+    inline bool keyPressed(SDL_Scancode sc)      { return inputSys.keyPressed(sc); }
+    inline bool keyReleased(SDL_Scancode sc)     { return inputSys.keyReleased(sc); }
 
-    inline bool  openGamepad(int index=0)         { return inputSys.openGamepad(index); }
-    inline void  closeGamepads()                  { inputSys.closeGamepads(); }
+    inline bool  openGamepad(int index=0)                           { return inputSys.openGamepad(index); }
+    inline void  closeGamepads()                                    { inputSys.closeGamepads(); }
     inline bool  padHeld(SDL_GameControllerButton btn, int i=0)     { return inputSys.padHeld(btn,i); }
     inline bool  padPressed(SDL_GameControllerButton btn, int i=0)  { return inputSys.padPressed(btn,i); }
     inline bool  padReleased(SDL_GameControllerButton btn, int i=0) { return inputSys.padReleased(btn,i); }
     inline Sint16 padAxis(SDL_GameControllerAxis axis, int i=0)     { return inputSys.padAxis(axis,i); }
 
-    void requestDestroy(Object* obj); // agenda destruição
-    void requestDestroyByType(int type);    // destroi todos objetos do tipo type
-    void requestDestroyByTag(int tag);     // destroi todos objetos da tag tag
+    void requestDestroy(Object* obj);    // agenda destruição
+    void requestDestroyByType(int type); // destroi todos objetos do tipo type
+    void requestDestroyByTag(int tag);   // destroi todos objetos da tag tag
 
     template <typename T>
     static T choose(initializer_list<T> values) {
@@ -125,6 +128,16 @@ public:
 
     void loadSound(string path, string tag);
     void playSound(string soundRef);
+
+    // --- Música (Mix_Music) ---
+    void loadMusic(const std::string& path, const std::string& tag);
+    void playMusic(const std::string& tag, int loops = -1);
+    void stopMusic();
+    void pauseMusic();
+    void resumeMusic();
+    bool musicIsPlaying() const;
+    void setMusicVolume(int volume);
+    string getCurrentMusicTag() const { return currentMusicTag; }    
 
     Object *createObject(int x, int y, int w, int h, string texture, int type = 0, int depth = 0);
     Object *createObject(int x, int y, string imageRef, int type);

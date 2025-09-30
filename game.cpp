@@ -152,6 +152,7 @@ void TargetsGame::carregaRecursos()
     g.loadSound("assets/impact1.wav",          "impact1");
     g.loadSound("assets/push_space.ogg",       "push_space");
     g.loadSound("assets/game_over_voice3.wav", "game_over");
+    g.loadSound("assets/energy_get.wav",       "energy_get");
 }
 
 void TargetsGame::criaObjetos(string_view qual)
@@ -202,8 +203,9 @@ void TargetsGame::criaObjetos(string_view qual)
         {
             if (other->type == TYPE_ENERGY)   
             {
-                this->energy += 10 % MAX_ENERGY;
+                this->energy = min(this->energy + 10, MAX_ENERGY);
                 other->requestDestroy();
+                g.playSound("energy_get");
             }
         };
 
@@ -276,8 +278,9 @@ void TargetsGame::criaObjetos(string_view qual)
         g.centerObject(alien);
         alien->y = alien->getH() / 2 + 10;
 
-        gover = g.createObject(0, 0, g.getW() / 2, g.getW() / 2, "gover", TYPE_HUD, 0);
+        gover = g.createObject(0, 0, 0, 0, "gover", TYPE_HUD, 0);
         gover->setAlarm(440, 0);
+        gover->setScale(0.5);
         gover->onAlarmFinished = [this, alien](Object *self, int id)
         {
             self->requestDestroy();
@@ -485,7 +488,7 @@ int TargetsGame::run()
     carregaRecursos();
     criaObjetos("estrelas");
     
-    mudaEstado(ST_GAMEOVER);
+    mudaEstado(ST_TITLE);
     
     hi = 0;
     while (g.running)
