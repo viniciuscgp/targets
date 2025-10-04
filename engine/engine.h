@@ -90,9 +90,11 @@ public:
     inline bool  padReleased(SDL_GameControllerButton btn, int i=0) { return inputSys.padReleased(btn,i); }
     inline Sint16 padAxis(SDL_GameControllerAxis axis, int i=0)     { return inputSys.padAxis(axis,i); }
 
-    void requestDestroy(Object* obj);    // agenda destruição
-    void requestDestroyByType(int type); // destroi todos objetos do tipo type
-    void requestDestroyByTag(int tag);   // destroi todos objetos da tag tag
+    void requestDestroyAll();                // destroi todos
+    void requestDestroyAllTypeBut(int type); // destroi todos
+    void requestDestroy(Object* obj);        // destroi este objeto
+    void requestDestroyByType(int type);     // destroi todos objetos do tipo type
+    void requestDestroyByTag(int tag);       // destroi todos objetos da tag tag
 
     template <typename T>
     static T choose(initializer_list<T> values) {
@@ -123,7 +125,11 @@ public:
 
     void loadImage(string path, string tag);
     void splitImage(string baseImageRef, int numberOfParts, string baseTag);
-    void drawImage(string imageRef, int x, int y, int w, int h, float angle);
+
+    // >>> Parâmetro opcional fx (retrocompatível)
+    void drawImage(string imageRef, int x, int y, int w, int h, float angle,
+                   const FxParams* fx = nullptr);
+
     void drawObject(Object *go);
 
     void loadSound(string path, string tag);
@@ -175,6 +181,8 @@ public:
     int countObjectTypes(int type);
     int countObjectTags(int tag);
     int randRangeInt(int x, int y);
+    int countObject();
+    int countObjectDefuncts();    
 
     template <typename T>
     void log(const string &msg, const T &value) {

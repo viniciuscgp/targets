@@ -26,6 +26,7 @@ void Object::calculate()
     y_prev = y;
 
     //-----------------------------------------------------
+    y_force += gravity;
 
     y += y_force;
     x += x_force;
@@ -42,8 +43,6 @@ void Object::calculate()
     y_impulse = applyFriction(y_impulse, friction_impulse);
 
     //------------------------------------------------------
-
-    y = applyGravity(y, gravity);
 
     // wrap horizontal
     if (wraph)
@@ -152,7 +151,7 @@ void Object::setForce(float fx, float fy)
     y_force = fy;
 }
 
-void Object::setDirection(float dir, float f)
+void Object::setDirection(float dir, float f) // Seta a direacao e a forca
 {
     // converter graus → radianos
     float rad = dir * (M_PI / 180.0f);
@@ -171,7 +170,8 @@ void Object::setImpulse(float fx, float fy)
     y_impulse = fy;
 }
 
-void Object::setImpulseDirection(float dir, float f)
+// Seta a direacao e a forca do vetor de impulso
+void Object::setImpulseDirection(float dir, float f) 
 {
     // converter graus → radianos
     float rad = dir * (M_PI / 180.0f);
@@ -235,6 +235,3 @@ Color Object::withAlpha(const Color& base, uint8_t alpha)
 // getters
 int Object::getW() const {return w * x_scale;}
 int Object::getH() const {return h * y_scale;}
-
-
-

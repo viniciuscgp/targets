@@ -9,6 +9,46 @@ static inline SDL_Color toSDL(const Color &c) {
     return SDL_Color{ c.r, c.g, c.b, c.a };
 }
 
+// =============== FX helpers ===============
+struct TextureStateGuard {
+    SDL_Texture* t;
+    SDL_BlendMode bm;
+    Uint8 r,g,b,a;
+    explicit TextureStateGuard(SDL_Texture* tex) : t(tex) {
+        SDL_GetTextureBlendMode(t, &bm);
+        SDL_GetTextureColorMod(t, &r, &g, &b);
+        SDL_GetTextureAlphaMod(t, &a);
+    }
+    ~TextureStateGuard() {
+        if (!t) return;
+        SDL_SetTextureBlendMode(t, bm);
+        SDL_SetTextureColorMod(t, r, g, b);
+        SDL_SetTextureAlphaMod(t, a);
+    }
+    TextureStateGuard(const TextureStateGuard&) = delete;
+    TextureStateGuard& operator=(const TextureStateGuard&) = delete;
+};
+
+static inline SDL_BlendMode blendModeFromFx(FxBlend fx) {
+    switch (fx) {
+        case FxBlend::Normal: return SDL_BLENDMODE_BLEND;
+        case FxBlend::Add:    return SDL_BLENDMODE_ADD;
+        case FxBlend::Mod:    return SDL_BLENDMODE_MOD;
+#if SDL_VERSION_ATLEAST(2,0,18)
+        case FxBlend::Mul:    return SDL_BLENDMODE_MUL;
+#else
+        case FxBlend::Mul:    return SDL_BLENDMODE_MOD; // fallback
+#endif
+        case FxBlend::Screen:
+            return SDL_ComposeCustomBlendMode(
+                SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_COLOR, SDL_BLENDOPERATION_ADD,
+                SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD
+            );
+    }
+    return SDL_BLENDMODE_BLEND;
+}
+// ==========================================
+
 Engine::~Engine()
 {
     for (auto &[key, res] : resources) {
@@ -83,19 +123,65 @@ bool Engine::init(const char *title, int w, int h)
     return true;
 }
 
-void Engine::drawImage(string imageRef, int x, int y, int w, int h, float angle)
+void Engine::drawImage(string imageRef, int x, int y, int w, int h, float angle,
+                       const FxParams* fx)
 {
     SDL_Rect dst{ x, y, w, h };
 
     auto it = resources.find(string(TEXTURE_PREFIX) + imageRef);
     if (it == resources.end() || !it->second.texture) return;
 
-    if (angle <= 0.0f) {
-        SDL_RenderCopy(renderer, it->second.texture, nullptr, &dst);
-    } else {
-        SDL_Point center{ dst.w / 2, dst.h / 2 };
-        SDL_RenderCopyEx(renderer, it->second.texture, nullptr, &dst, angle, &center, SDL_FLIP_NONE);
+    SDL_Texture* tex = it->second.texture;
+
+    // salva/restaura estado automaticamente
+    TextureStateGuard guard(tex);
+
+    // lê os efeitos (ou defaults neutros se fx == nullptr)
+    FxParams local;
+    if (fx) local = *fx;
+
+    SDL_SetTextureBlendMode(tex, blendModeFromFx(local.blend));
+    SDL_SetTextureColorMod(tex, local.tint_r, local.tint_g, local.tint_b);
+    SDL_SetTextureAlphaMod(tex, local.alpha);
+
+    SDL_Point center{ dst.w / 2, dst.h / 2 };
+    const SDL_Point* pCenter = (angle != 0.0f && local.centerRotate) ? &center : nullptr;
+
+    // PATCH 1: não fixar alpha do glow dentro do copy()
+    auto copy = [&](int dx, int dy, Uint8 aOverride, bool useAddBlend) {
+        if (useAddBlend) {
+            SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_ADD);
+            SDL_SetTextureColorMod(tex, local.glow_r, local.glow_g, local.glow_b);
+            // (removido) SDL_SetTextureAlphaMod(tex, local.glow_a);
+        }
+        if (aOverride != 255) SDL_SetTextureAlphaMod(tex, aOverride);
+        SDL_Rect d = dst; d.x += dx; d.y += dy;
+        if (angle == 0.0f) SDL_RenderCopy(renderer, tex, nullptr, &d);
+        else SDL_RenderCopyEx(renderer, tex, nullptr, &d, angle, pCenter, SDL_FLIP_NONE);
+    };
+
+    // PATCH 2: usar fx.glow_a como intensidade-mestre + falloff por anel
+    if (local.glowRadius > 0) {
+        const int R = local.glowRadius;
+        for (int r = 1; r <= R; ++r) {
+            const int off = r;
+            const int offsets[8][2] = {
+                {-off,0},{off,0},{0,-off},{0,off},{-off,-off},{-off,off},{off,-off},{off,off}
+            };
+            // falloff linear 1..~0; alpha final = local.glow_a * falloff
+            float falloff = 1.0f - (float)r / (R + 1);
+            Uint8 a = (Uint8)std::round(local.glow_a * falloff);
+            for (auto& v : offsets) copy(v[0], v[1], a, /*useAddBlend*/true);
+        }
+        // restaura estado do sprite principal
+        SDL_SetTextureBlendMode(tex, blendModeFromFx(local.blend));
+        SDL_SetTextureColorMod(tex, local.tint_r, local.tint_g, local.tint_b);
+        SDL_SetTextureAlphaMod(tex, local.alpha);
     }
+
+    // sprite principal
+    if (angle == 0.0f) SDL_RenderCopy(renderer, tex, nullptr, &dst);
+    else SDL_RenderCopyEx(renderer, tex, nullptr, &dst, angle, pCenter, SDL_FLIP_NONE);
 }
 
 void Engine::drawObject(Object *go)
@@ -105,7 +191,8 @@ void Engine::drawObject(Object *go)
     // imagem (usa AABB consistente)
     const string img = go->getCurrentImageRef();
     if (!img.empty()) {
-        drawImage(img, objLeft(go), objTop(go), go->getW(), go->getH(), go->angle);
+        // passa os FX do próprio objeto (retrocompat: se não mexer em go->fx, é neutro)
+        drawImage(img, objLeft(go), objTop(go), go->getW(), go->getH(), go->angle, &go->fx);
     }
 
     // texto exatamente na posição do objeto
@@ -113,8 +200,6 @@ void Engine::drawObject(Object *go)
         int fsize = go->font_size > 0 ? go->font_size : 16;
         TTF_Font *font = getFont(go->font_name, fsize);
         if (font) {
-            // quando centered=true, drawText centraliza em (x,y)
-            // quando centered=false, drawText usa (x,y) como top-left
             const bool centerText = go->centered;
             const int tx = int(go->x);
             const int ty = int(go->y);
@@ -248,7 +333,6 @@ void Engine::playMusic(const string& tag, int loops)
         return;
     }
 
-    // opcional: parar a atual antes de tocar outra
     if (Mix_PlayingMusic()) Mix_HaltMusic();
 
     if (Mix_PlayMusic(it->second.music, loops) == -1) {
@@ -326,7 +410,6 @@ Object *Engine::createObject(int x, int y, int type)
 {
     return createObject(x, y, 0, 0, "", type, type);
 }
-
 
 Object *Engine::createObject(int x, int y)
 {
@@ -414,7 +497,8 @@ void Engine::calculateAll()
     inputBeginFrame();
     if (quitRequested() || keyPressed(SDL_SCANCODE_ESCAPE)) running = false;
 
-    for (Object *obj : ordered_objects)  obj->calculate();
+    auto snapshot = ordered_objects;  
+    for (Object *obj : snapshot)  obj->calculate();
     
     processCollisions();
     flushDestroyQueue();
@@ -541,6 +625,24 @@ void Engine::processCollisions()
     }
 }
 
+int Engine::countObject()
+{
+    int i = 0;
+    for (Object* o : ordered_objects) {
+        if (!o->defunct) i++;
+    }
+    return i;
+}   
+
+int Engine::countObjectDefuncts()
+{
+    int i = 0;
+    for (Object* o : ordered_objects) {
+        if (o->defunct) i++;
+    }
+    return i;
+}   
+
 int Engine::countObjectTypes(int type)
 {
     int i = 0;
@@ -565,6 +667,20 @@ void Engine::requestDestroy(Object* obj) {
         obj->defunct = true;
         destroy_queue.push_back(obj);
     }
+}
+
+void Engine::requestDestroyAllTypeBut(int type) {
+    for (Object* o : ordered_objects) {
+        if (o && o->type != type && !o->defunct) {
+            requestDestroy(o);
+        }
+    }    
+}
+
+void Engine::requestDestroyAll() {
+    for (Object* o : ordered_objects) {
+        requestDestroy(o);
+    }    
 }
 
 void Engine::requestDestroyByType(int type) 
@@ -703,6 +819,3 @@ void Engine::drawCross(int cx, int cy, int size, const Color& c)
     drawLine(cx - size, cy, cx + size, cy, c);
     drawLine(cx, cy - size, cx, cy + size, c);
 }
-
-
-

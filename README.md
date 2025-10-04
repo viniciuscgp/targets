@@ -11,6 +11,8 @@ Esses seres, conhecidos como Morkons, querem transformar a Terra em sua nova col
 Você é o piloto da última nave de defesa da humanidade.
 Sua missão é clara: atravessar enxames de UFOs-caras, enfrentar os líderes alienígenas e impedir a invasão antes que seja tarde demais.
 
+A nave utiliza muita energia, por isso você vai precisar recolher toda energia que puder pra se manter operando. Boa sorte !
+
 ## 🎮 Sobre o Jogo
 
 Você controla uma nave espacial que deve destruir inimigos enquanto desvia deles.  
@@ -112,3 +114,7 @@ Sugerir novas funcionalidades
 
 Enviar pull requests
 
+Prompt da musica:
+-----------------
+Aliens are invading the earth. You are the last earth defence with your ship. 
+Looped music, short, less than 1 minute, medium velocity.

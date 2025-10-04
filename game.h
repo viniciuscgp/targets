@@ -9,6 +9,8 @@ public:
     Engine g;
 
     Object *title        = nullptr;
+    Object *background   = nullptr;
+    Object *history      = nullptr;
     Object *push         = nullptr;
     Object *nave         = nullptr;
     Object *gover        = nullptr;
@@ -16,6 +18,7 @@ public:
     Object *hud_hi       = nullptr;
     Object *hud_wave     = nullptr;
     Object *hud_energy   = nullptr;
+    Object *hud_debug    = nullptr;
 
     Object *display_wave = nullptr;
 
@@ -26,6 +29,7 @@ public:
     int wave   = 1;
     int kills  = 0;
     int energy = 0;
+    int music_volume = 128 / 2; // 128 é o máximo
 
     void inimigoExplosao(Object o);
     void mudaEstado(int estado);
