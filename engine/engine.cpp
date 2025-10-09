@@ -192,18 +192,18 @@ void Engine::drawObject(Object *go)
     const string img = go->getCurrentImageRef();
     if (!img.empty()) {
         // passa os FX do próprio objeto (retrocompat: se não mexer em go->fx, é neutro)
-        drawImage(img, objLeft(go), objTop(go), go->getW(), go->getH(), go->angle, &go->fx);
+        drawImage(img, objLeft(go), objTop(go), go->getW(), go->getH(), go->getAngle(), &go->fx);
     }
 
     // texto exatamente na posição do objeto
-    if (!go->text.empty() && !go->font_name.empty()) {
-        int fsize = go->font_size > 0 ? go->font_size : 16;
-        TTF_Font *font = getFont(go->font_name, fsize);
+    if (!go->getText().empty() && !go->getFontName().empty()) {
+        int fsize = go->getFontSize() > 0 ? go->getFontSize() : 16;
+        TTF_Font *font = getFont(go->getFontName(), fsize);
         if (font) {
-            const bool centerText = go->centered;
-            const int tx = int(go->x);
-            const int ty = int(go->y);
-            drawText(go->text, tx, ty, go->font_name, fsize, toSDL(go->font_color), centerText);
+            const bool centerText = go->isCentered();
+            const int tx = int(go->getX());
+            const int ty = int(go->getY());
+            drawText(go->getText(), tx, ty, go->getFontName(), fsize, toSDL(go->getFontColor()), centerText);
         }
     }
 
@@ -392,7 +392,7 @@ Object *Engine::createObject(int x, int y, int w, int h, string imageRef, int ty
     Object *ptr = obj.get();
     objects.push_back(move(obj));
     ordered_objects.push_back(ptr);
-    ptr->engine = this;
+    ptr->setEngine(this);
     return ptr;
 }
 
@@ -418,18 +418,18 @@ Object *Engine::createObject(int x, int y)
 
 void Engine::centerXObject(Object *go)
 {
-    if (go->centered)
-        go->x = w * 0.5f;
+    if (go->isCentered())
+        go->setX(w * 0.5f);
     else
-        go->x = (w - go->getW()) * 0.5f;
+        go->setX((w - go->getW()) * 0.5f);
 }
 
 void Engine::centerYObject(Object *go)
 {
-    if (go->centered)
-        go->y = h * 0.5f;
+    if (go->isCentered())
+        go->setY(h * 0.5f);
     else
-        go->y = (h - go->getH()) * 0.5f; 
+        go->setY(h - go->getH() * 0.5f); 
 }
 
 void Engine::centerObject(Object *go)
@@ -511,10 +511,10 @@ void Engine::renderAll()
 
     // depth: maior primeiro (menor fica no topo, pois desenha por último)
     stable_sort(ordered_objects.begin(), ordered_objects.end(),
-        [](Object *a, Object *b){ return a->depth > b->depth; });
+        [](Object *a, Object *b){ return a->getDepth() > b->getDepth();});
 
     for (Object *obj : ordered_objects) {
-        if (obj->visible) drawObject(obj);
+        if (obj->isVisible()) drawObject(obj);
     }
 
     SDL_RenderPresent(renderer);
@@ -565,9 +565,9 @@ static inline bool Engine_rectOverlap(const Object* a, const Object* b) {
 
 // regra de grupo: 0 colide com todos; !=0 só colide com iguais
 static inline bool Engine_groupMatch(const Object* a, const Object* b) {
-    if (a->collision_group == -1 || b->collision_group == -1) return false;
-    if (a->collision_group == 0  || b->collision_group == 0)  return true;
-    return a->collision_group == b->collision_group;
+    if (a->getCollisionGroup() == -1 || b->getCollisionGroup() == -1) return false;
+    if (a->getCollisionGroup() == 0  || b->getCollisionGroup() == 0)  return true;
+    return a->getCollisionGroup() == b->getCollisionGroup();
 }
 
 static inline void Engine_putInCells(
@@ -598,7 +598,7 @@ void Engine::processCollisions()
 
     // 1) distribui objetos visíveis nas células
     for (Object* o : ordered_objects) {
-        if (!o || !o->visible) continue;
+        if (!o || !o->isVisible()) continue;
         Engine_putInCells(grid, o);
     }
 
@@ -629,7 +629,7 @@ int Engine::countObject()
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (!o->defunct) i++;
+        if (!o->isDefunct()) i++;
     }
     return i;
 }   
@@ -638,7 +638,7 @@ int Engine::countObjectDefuncts()
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o->defunct) i++;
+        if (o->isDefunct()) i++;
     }
     return i;
 }   
@@ -647,7 +647,7 @@ int Engine::countObjectTypes(int type)
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o && o->type == type && !o->defunct) i++;
+        if (o && o->getType() == type && !o->isDefunct()) i++;
     }
     return i;
 }   
@@ -656,7 +656,7 @@ int Engine::countObjectTags(int tag)
 {
     int i = 0;
     for (Object* o : ordered_objects) {
-        if (o && o->tag == tag && !o->defunct) i++;
+        if (o && o->getTag() == tag && !o->isDefunct()) i++;
     }
     return i;
 }
@@ -664,14 +664,14 @@ int Engine::countObjectTags(int tag)
 void Engine::requestDestroy(Object* obj) {
     if (!obj) return;
     if (find(destroy_queue.begin(), destroy_queue.end(), obj) == destroy_queue.end()) {
-        obj->defunct = true;
+        obj->setDefunct(true);
         destroy_queue.push_back(obj);
     }
 }
 
 void Engine::requestDestroyAllTypeBut(int type) {
     for (Object* o : ordered_objects) {
-        if (o && o->type != type && !o->defunct) {
+        if (o && o->getType() != type && !o->isDefunct()) {
             requestDestroy(o);
         }
     }    
@@ -686,7 +686,7 @@ void Engine::requestDestroyAll() {
 void Engine::requestDestroyByType(int type) 
 {
     for (Object* o : ordered_objects) {
-        if (o && o->type == type && !o->defunct) {
+        if (o && o->getType() == type && !o->isDefunct()) {
             requestDestroy(o);
         }
     }    
@@ -695,7 +695,7 @@ void Engine::requestDestroyByType(int type)
 void Engine::requestDestroyByTag(int tag) 
 {
     for (Object* o : ordered_objects) {
-        if (o && o->tag == tag && !o->defunct) {
+        if (o && o->getTag() == tag && !o->isDefunct()) {
             requestDestroy(o);
         }
     }    
@@ -819,3 +819,4 @@ void Engine::drawCross(int cx, int cy, int size, const Color& c)
     drawLine(cx - size, cy, cx + size, cy, c);
     drawLine(cx, cy - size, cx, cy + size, c);
 }
+

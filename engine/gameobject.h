@@ -13,13 +13,11 @@ struct Color
 };
 
 struct Alarm {
+    int frames_backup; // para restartar
     int frames;   // tempo restante em frames/ticks
     int id;       // identificação
 };
 
-// =========================
-//   FX embutido no objeto
-// =========================
 enum class FxBlend {
     Normal,   // alpha blend padrão
     Add,      // aditivo (neon/laser)
@@ -47,12 +45,69 @@ struct FxParams {
     bool      centerRotate = true;          // rotacionar em torno do centro
 };
 
+enum ImageCycle { LOOP, ONCE };
+
 class Engine;
 
 class Object
 {
 private:
-    int w, h; // tamanho do retangulo de colisao
+    float x, y;             // posicao na tela cano superior esquerdo = 0,0
+    int   w, h;             // tamanho do retangulo de colisao
+    float x_start;          // valor inicial de x
+    float y_start;          // valor inicial de y
+    float x_prev;           // x anterior
+    float y_prev;           // y anterior
+    float x_scale;          // escala do objeto horizontal
+    float y_scale;          // escala do objeto vertical;
+
+    // Vetor principal da força aplicada no objeto
+    float force_x;           // sera adicionado ao x
+    float force_y;           // sera adicionado ao y
+    float force_friction;    // sera diminuido das forças
+    float gravity;           // força gravitacional
+
+    // Vetor de Inpulso é um vetor adicional que será adicionado ao movimento
+    float impulse_x;         // vetor secundario de impulso
+    float impulse_y;         // vetor secundario de impulso
+    float impulse_friction;  // atrito do impulso
+
+    // campos comuns em muitos games
+    float energy;            // energia desse objeto
+    float shield;            // escudo generico
+    float attack;            // ao colidir vai remover de shield e depois de energy
+
+    int   type;              // pode ser usado pra qualquer coisa
+    int   tag;               // pode ser usado pra qualquer coisa
+
+    bool wraph;              // auto wrap horizontal
+    bool wrapv;              // auto wrap vertical;
+
+    int depth;               // ordem que a imagem sera desenhada < mais na frente
+    int collision_group;     // -1 nao colide, 0 colide com todos, >= colide com iguais
+
+    bool defunct;            // sera eliminado
+    bool visible;            // mostrar ou não
+    Engine *engine;          // apontador pra engine
+    Object *parent;          // objeto pai
+
+    // Angulo que a imagem será mostrada e se vai girar automaticamente
+    float angle;             // angulo que a imagem será mostrada
+    float angle_speed;       // soma ao angulo em cada step
+
+    // Imagens associadas ao objeto
+    float image_index;       // imagem mostrada no momento de 0 a images.size()
+    float image_speed;       // velocidade de transição para a proxima imagem
+    bool centered;           // vai centralizar a imagem
+    ImageCycle image_cycle;  // ao terminar o ciclo de imagens o que fazer
+
+    // Texto associado ao objeto
+    string font_name;        // Nome da fonte
+    Color  font_color;       // cor da fonte
+    int    font_size;        // tamanho da fonte
+    string text;             // se definido será mostrado na fonte acima
+
+    vector<Alarm> alarms;    // alarmes, ao finalizar, gera um evento
 
 public:
     static constexpr Color COLOR_WHITE       = {255, 255, 255, 255};
@@ -66,70 +121,7 @@ public:
     static constexpr Color COLOR_GRAY        = {128, 128, 128, 255};
     static constexpr Color COLOR_TRANSPARENT = {0, 0, 0, 0};
 
-    enum ImageCycle { LOOP, ONCE };
-
-    float x, y;             // posicao na tela cano superior esquerdo = 0,0
-    float x_start;          // valor inicial de x
-    float y_start;          // valor inicial de y
-    float x_prev;           // x anterior
-    float y_prev;           // y anterior
-    float x_scale;          // escala do objeto horizontal
-    float y_scale;          // escala do objeto vertical;
-
-    // Vetor principal da força aplicada no objeto
-
-    float direction;         // direcao em graus
-    float force;             // força
-    float x_force;           // sera adicionado ao x
-    float y_force;           // sera adicionado ao y
-
-    float friction_force;    // sera diminuido das forças
-    float gravity;           // força gravitacional
-
-
-    // Vetor de Inpulso é um vetor adicional que será adicionado ao movimento
-
-    float impulse_direction; // direcao em graus do impulso
-    float impulse_force;     // forca de impulso
-    float x_impulse;         // vetor secundario de impulso
-    float y_impulse;         // vetor secundario de impulso
-    float friction_impulse;  // atrito do impulso
-
-    // campos comuns em muitos games
-    float energy;            // energia desse objeto
-    float shield;            // escudo generico
-    float atack;             // ao colidir vai remover de shield e depois de energy
-    int type;                // pode ser usado pra qualquer coisa
-    int tag;                 // pode ser usado pra qualquer coisa
-
-    bool wraph;              // auto wrap horizontal
-    bool wrapv;              // auto wrap vertical;
-
-    int depth;               // ordem que a imagem sera desenhada < mais na frente
-    int collision_group;     // -1 nao colide, 0 colide com todos, >= colide com iguais
-
-    bool defunct;            // sera eliminado
-    bool visible;            // mostrar ou não
-    Engine *engine;          // apontador pra engine
-
-    // Angulo que a imagem será mostrada e se vai girar automaticamente
-    float angle;             // angulo que a imagem será mostrada
-    float angle_speed;       // soma ao angulo em cada step
-
-    // Imagens associadas ao objeto
     vector<string> images;   // referencias de imagens assossiadas a esse objeto
-    float image_index;       // imagem mostrada no momento de 0 a images.size()
-    float image_speed;       // velocidade de transição para a proxima imagem
-    ImageCycle image_cycle;  // ao terminar o ciclo de imagens o que fazer
-    bool centered;           // vai centralizar a imagem
-
-    // Texto associado ao objeto
-    string font_name;        // Nome da fonte
-    Color font_color;        // cor da fonte
-    int font_size;           // tamanho da fonte
-    string text;             // se definido será mostrado na fonte acima
-
-    vector<Alarm> alarms;    // alarmes, ao finalizar, gera um evento
 
     // ---------- FX por-objeto (defaults neutros) ----------
     FxParams fx;
@@ -157,18 +149,18 @@ public:
         x_scale = 1.0f;
         y_scale = 1.0f;
 
-        x_force = 0;
-        y_force = 0;
-        friction_force = 0;
+        force_x = 0;
+        force_y = 0;
+        force_friction = 0;
         gravity = 0;
 
-        x_impulse = 0;
-        y_impulse = 0;
-        friction_impulse = 0;
+        impulse_x = 0;
+        impulse_y = 0;
+        impulse_friction = 0;
 
         energy = 10;
+        attack = 10;
         shield = 0;
-        atack  = 10;
         collision_group = 0;
 
         wraph = false;
@@ -190,6 +182,7 @@ public:
     {
         addImageRef(image);
     }
+
     void setScale(float sx, float sy);
     void setScale(float s);
 
@@ -203,6 +196,7 @@ public:
 
     void setImpulse(float ix, float iy);
     void setImpulseDirection(float dir, float f);
+    float getImpulseDirection();
 
     void setAngle(float angle, float angle_speed);
 
@@ -211,12 +205,118 @@ public:
     bool destroyIfLowEnergy();
     float getFinalDirection() const;
     string getCurrentImageRef();
-    void setAlarm(int frames, int id);
-    Color withAlpha(const Color& base, uint8_t alpha);
 
-    // getters
+    void setAlarm(int frames, int id);
+    void finishAlarm(int id);
+    void restartAlarm(int id);
+
+    Color withAlpha(const Color& base, uint8_t alpha);
+    Object *getParent() const;
+    void setParent(Object *p);
+
     int getW() const;
     int getH() const;
+
+    float getX() const;
+    void setX(float x);
+    void addX(float x);
+    
+    float getY() const;
+    void setY(float y);
+    void addY(float y);
+    
+    void centerY();
+    void centerX();
+    void center();
+
+    float getXPrev() const;
+    float getYPrev() const;
+    float getXStart() const;
+    float getYStart() const;
+
+    float getXScale() const;
+    float getYScale() const;
+
+    float getDirection() const;
+    float getForce() const;
+
+    float getForceX() const;
+    void  setForceX(float force);
+
+    float getForceY() const;
+    void  setForceY(float force);
+    float getForceFriction() const;
+
+    float getGravity() const;
+    void  setGravity(float g);
+
+    float getImpulseDirection() const;
+    float getImpulseForce() const;
+    
+    float getImpulseX() const;
+    float getImpulseY() const;
+
+    float getImpulseFriction() const;
+    void  setImpulseFriction(float impulseFriction);
+
+    float getEnergy() const;
+    void  setEnergy(float energy);
+
+    float getShield() const;
+    void  setShield(float shield);
+
+    float getAtack() const;
+    void  setAtack(float atack);
+
+    int  getType() const;
+    void setType(int type);
+
+    int  getTag() const;
+    void setTag(int tag);
+
+    bool getWrapH() const;
+    bool getWrapV() const;
+
+    int  getDepth() const;
+    void setDepth(int depth);
+
+
+    int  getCollisionGroup() const;
+    void setCollisionGroup(int collisionGroup);
+
+    bool isDefunct() const;
+    void setDefunct(bool b);
+
+    bool isVisible() const;
+    void setVisible(bool visible);
+
+    float getAngle() const;
+    void  setAngle(float angle);
+
+    float getAngleSpeed() const;
+    void  setAngleSpeed(float angleSpeed);
+
+    float getImageIndex() const;
+    float getImageSpeed() const;
+    void  setImageSpeed(float speed);
+
+    ImageCycle getImageCycle() const;
+    void setImageCycle(ImageCycle imageCycle);
+
+    bool isCentered() const;
+    void setCentered(bool centered);
+
+    string getFontName() const;
+    Color getFontColor() const;
+    int getFontSize() const;
+
+    string getText() const;
+    void setText(string text);
+
+    Engine* getEngine() const;
+    void setEngine(Engine *engine);
+
+    FxParams getFx() const;    
 
     // -----------------------
     // Helpers de FX (presets)
@@ -278,7 +378,7 @@ public:
         fx.glowRadius = 0;
     }    
 
-// ======================================================
+    // ======================================================
     // Helpers para encadear alarm sem perder handler atual
     // ======================================================
     void chainAlarmHandler(int watchId, std::function<void(Object*)> fn) {
@@ -333,3 +433,4 @@ public:
         chainAlarmHandler(alarmId, [](Object* o){ o->clearFx(); });
     }
 };
+

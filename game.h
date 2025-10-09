@@ -29,7 +29,9 @@ public:
     int wave   = 1;
     int kills  = 0;
     int energy = 0;
+    int fire_type = 1;
     int music_volume = 128 / 2; // 128 é o máximo
+    int sound_volume = 128;
 
     void inimigoExplosao(Object o);
     void mudaEstado(int estado);

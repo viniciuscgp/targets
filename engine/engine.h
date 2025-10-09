@@ -73,8 +73,8 @@ public:
 
 // --- Wrappers de input (o jogo só chama Engine) ---
     // --- Helpers de AABB (funcionam com x/y sendo centro ou canto)
-    static inline int objLeft  (const Object* o) { return o->centered ? int(o->x - o->getW()/2) : int(o->x); }
-    static inline int objTop   (const Object* o) { return o->centered ? int(o->y - o->getH()/2) : int(o->y); }
+    static inline int objLeft  (const Object* o) { return o->isCentered() ? int(o->getX() - o->getW()/2) : int(o->getX()); }
+    static inline int objTop   (const Object* o) { return o->isCentered() ? int(o->getY() - o->getH()/2) : int(o->getY()); }
     static inline int objRight (const Object* o) { return objLeft(o) + o->getW(); }
     static inline int objBottom(const Object* o) { return objTop(o)  + o->getH(); }
 
